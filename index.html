@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>번역 노트 (Gemini 개인키 · PWA · 용어집 · 설정)</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b0f14" />
+  <style>
+    :root { --bg:#0b0f14; --fg:#e6eef8; --muted:#9db0c6; --card:#121821; --accent:#69b1ff; --danger:#ff6b6b; --line:#1c2738; }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,Apple Color Emoji,Arial,sans-serif}
+    header{position:sticky;top:0;background:linear-gradient(180deg,#0b0f14 70%,transparent);padding:12px 16px 10px;border-bottom:1px solid #182131;z-index:5}
+    h1{font-size:18px;margin:0 0 6px}
+    .wrap{max-width:980px;margin:0 auto;padding:12px 16px 120px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+    input,select,button,textarea{background:#0e141d;color:var(--fg);border:1px solid #263347;border-radius:12px;padding:10px 12px;font-size:15px}
+    input::placeholder,textarea::placeholder{color:#6e8096}
+    textarea{min-height:64px}
+    button{cursor:pointer}
+    button.primary{background:var(--accent);color:#001226;border-color:#2a5a8c}
+    button.ghost{background:transparent}
+    .hint{color:var(--muted);font-size:12px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media (min-width:900px){ .grid{grid-template-columns:1.1fr 1fr} }
+    .line{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;background:#0f1621;border:1px solid #1b2536;border-radius:14px;padding:10px}
+    .label{font-size:12px;color:#8ea5bd}
+    .orig,.tran{white-space:pre-wrap;word-break:break-word}
+    .toolbar{display:flex;gap:8px;align-items:center}
+    .spacer{flex:1}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a3b55;color:#9db0c6;font-size:12px}
+    .error{color:var(--danger)}
+    details > summary{cursor:pointer;list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    .pill{display:inline-flex;align-items:center;gap:6px;background:#0f1825;border:1px solid #22324b;padding:4px 8px;border-radius:999px}
+    .pill b{color:#b7c8dc}
+    /* 버튼/폼 오버플로우 방지 */
+    /* 레이아웃 튜닝 */
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .row > *{min-height:40px}
+    .btn-group{display:flex;gap:8px;flex-wrap:wrap}
+    textarea{min-height:64px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media (min-width:900px){ .grid{grid-template-columns:1.1fr 1fr} }
+
+    /* 공통: 줄바꿈 허용 + 버티기 */
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+    /* 키 입력칸은 가로를 가져가고, 버튼은 고정폭으로 유지 */
+    .key-field{flex:1 1 360px; min-width:260px; position:relative; z-index:0;}
+    .btn-group{flex:0 0 auto; display:flex; gap:8px; flex-wrap:wrap; position:relative; z-index:3;}
+
+    /* 요소 자체 크기/계산 안정화 */
+    input,select,textarea,button{box-sizing:border-box}
+    .key-field input{width:100%; display:block; position:relative; z-index:0;}
+    /* 입력영역을 flex 행 밖으로 한 줄 전부 차지 */
+    .note-wrap{flex:1 0 100%; width:100%}
+    #noteInput{width:100%; display:block; min-height:64px}
+    /* 결과 섹션 헤더 */
+    .result-head{align-items:center}
+
+    /* compact line for split view */
+    .line{padding:6px 8px}
+    .badge{padding:1px 6px; font-size:11px}
+    .toolbar button{padding:6px 8px}
+
+    /* 한 틀 안에 얇은 구분선으로 나누기 (pair view) */
+    .list{
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+      background:#0f1621;
+    }
+    .list .item{
+      display:grid;
+      grid-template-columns:auto 1fr;
+      gap:10px;
+      padding:6px 10px;
+      align-items:start;
+      border-top:1px solid #1b2536;
+    }
+    .list .item:first-child{ border-top:none }
+    .idx{
+      min-width:28px; text-align:center;
+      font-size:12px; color:#9db0c6; padding-top:2px;
+    }
+    .text .orig{ color:#8ea5bd; font-size:13px; line-height:1.4; margin-bottom:2px }
+    .text .tran{ line-height:1.5 }
+
+    /* 포커스 표시가 이웃을 덮지 않도록(시인성 유지) */
+    input:focus-visible, textarea:focus-visible, select:focus-visible{
+      outline:2px solid var(--accent);
+      outline-offset:2px;   /* 바깥으로 2px */
+    }
+
+    /* compact한 라인 간격 (좌우 2열) */
+    .line{padding:6px 8px}
+    .badge{padding:1px 6px;font-size:11px}
+    .toolbar button{padding:6px 8px}
+
+    /* 세로(pair) 모드 큰 틀 + 구분선 */
+    .list{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0f1621}
+    .list .item{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:6px 10px;align-items:start;border-top:1px solid #1b2536}
+    .list .item:first-child{border-top:none}
+    .idx{min-width:28px;text-align:center;font-size:12px;color:#9db0c6;padding-top:2px}
+    .text .orig{color:#8ea5bd;font-size:13px;line-height:1.4;margin-bottom:2px}
+    .text .tran{line-height:1.5}
+
+    /* 편집 가능 표시 */
+    .editable{outline:none}
+    .editable[contenteditable="true"]:focus{
+      box-shadow:0 0 0 2px rgba(105,177,255,.35) inset;border-radius:6px
+    }
+
+    /* 체크박스 정렬 */
+    .toolbar .sel{margin-right:6px}
+
+    /* 설정 모달 */
+    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);z-index:30}
+    .overlay.show{display:flex}
+    .modal{width:min(680px,92vw);background:#121821;border:1px solid #1c2738;border-radius:16px;padding:14px}
+    .modal h2{margin:0 0 8px;font-size:18px}
+    .modal .grid2{display:grid;grid-template-columns:1fr;gap:10px}
+    @media (min-width:680px){ .modal .grid2{grid-template-columns:1fr 1fr} }
+    .range-row{display:flex;align-items:center;gap:10px}
+    .range-row input[type=range]{flex:1}
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>번역 노트 — Gemini 개인 API 키 · PWA · 용어집</h1>
+      <div class="hint">각 사용자가 본인 <b>Gemini API 키</b>를 로컬에 저장하고, 한 줄씩 입력하면 즉시 번역합니다. 서버 저장 없음. PWA 설치 지원.</div>
+    </div>
+  </header>
+  <main class="wrap">
+    <!-- API 키 섹션 -->
+    <section class="card" aria-labelledby="sec-key">
+      <div class="row" style="gap:10px;align-items:end">
+        <div class="key-field" style="flex:1;min-width:220px">
+          <div class="label">Gemini API Key</div>
+          <input id="apiKey" type="password" placeholder="ex) AIza..." autocomplete="off" style="width:100%" />
+          <div class="hint">브라우저 <code>localStorage</code>에만 저장됩니다. (기기/브라우저별 별도)</div>
+        </div>
+        <div class="btn-group">
+          <button id="toggleKey" class="ghost">표시</button>
+          <button id="saveKey" class="primary">키 저장</button>
+          <button id="testKey">키 테스트</button>
+        </div>
+        <div id="keyMsg" class="hint"></div>
+      </div>
+    </section>
+    <!-- 용어집 섹션 -->
+    <section class="card" style="margin-top:12px">
+      <details open>
+        <summary class="row" style="gap:8px"><span class="pill"><b>용어집</b><span id="glossCount" class="hint">(0개)</span></span><span class="hint">고정 번역/치환</span></summary>
+        <div class="row" style="margin-top:8px;gap:8px;align-items:end">
+          <div style="flex:1;min-width:180px">
+            <div class="label">원문 용어</div>
+            <input id="gSrc" placeholder="예: 성경" style="width:100%"/>
+          </div>
+          <div style="flex:1;min-width:180px">
+            <div class="label">번역 용어</div>
+            <input id="gTgt" placeholder="예: Bible" style="width:100%"/>
+          </div>
+          <label class="hint"><input type="checkbox" id="gWhole" checked> 단어 경계 일치</label>
+          <div class="btn-group">
+            <button id="gAdd" class="primary">추가</button>
+            <button id="gClear" class="ghost">전체 삭제</button>
+          </div>
+        </div>
+        <div id="gList" style="margin-top:8px;display:grid;gap:6px"></div>
+        <div class="hint" style="margin-top:6px">번역 전에는 프롬프트 지시, 번역 후에는 결정적 치환을 함께 수행합니다.</div>
+      </details>
+    </section>
+
+    <!-- 번역 입력 섹션 -->
+    <section class="card" style="margin-top:12px">
+      <div class="row" style="gap:10px">
+        <div>
+          <div class="label">원문 언어</div>
+          <select id="srcLang">
+            <option value="auto">자동 감지</option>
+            <option value="ko">한국어</option>
+            <option value="en">영어</option>
+            <option value="ja">일본어</option>
+            <option value="zh">중국어(간체)</option>
+            <option value="de">독일어</option>
+            <option value="fr">프랑스어</option>
+            <option value="es">스페인어</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">목표 언어</div>
+          <select id="tgtLang">
+            <option value="en">영어</option>
+            <option value="ko" selected>한국어</option>
+            <option value="ja">일본어</option>
+            <option value="zh">중국어(간체)</option>
+            <option value="de">독일어</option>
+            <option value="fr">프랑스어</option>
+            <option value="es">스페인어</option>
+          </select>
+        </div>
+        <div class="spacer"></div>
+        <div class="btn-group">
+          <button id="openSettings" class="ghost">설정</button>
+          <button id="installBtn" class="ghost">앱 설치</button>
+        </div>
+      </div>
+
+      <!-- ★ textarea는 별도 블록(note-wrap) 안에서 100% 폭으로 -->
+      <div class="note-wrap" style="margin-top:10px">
+        <textarea id="noteInput" rows="3" placeholder="한 줄 입력 후 Enter (또는 번역 버튼)"></textarea>
+        <div class="row" style="margin-top:8px">
+          <div class="hint">Tip: 줄바꿈(Shift+Enter), 전송(Enter).</div>
+          <div class="spacer"></div>
+          <button id="sendBtn" class="primary">번역</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 결과 섹션 -->
+    <section class="card" style="margin-top:12px" id="results">
+      <div class="row result-head">
+        <div class="btn-group">
+          <label class="hint">복사:
+            <select id="copyMode">
+              <option value="tran">번역</option>
+              <option value="orig">원문</option>
+              <option value="both" selected>원문→번역</option>
+            </select>
+          </label>
+          <button id="btnCopySel" class="ghost">선택 복사</button>
+          <button id="btnDeleteSel" class="ghost">선택 삭제</button>
+          <button id="btnSaveNote" class="ghost">노트 저장</button>
+          <button id="btnLoadNote" class="ghost">노트 불러오기</button>
+          <label class="hint"><input type="checkbox" id="selToggle"> 전체선택</label>
+        </div>
+        <div class="label">결과</div>
+        <div class="spacer"></div>
+        <label class="hint">보기:
+          <select id="layoutMode">
+            <option value="split">좌우 2열</option>
+            <option value="pair">세로(원문→번역)</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- 좌우 2열 모드 -->
+      <div id="resSplit" class="grid">
+        <div>
+          <div class="label">원문</div>
+          <div id="origList" class="stack"></div>
+        </div>
+        <div>
+          <div class="label">번역</div>
+          <div id="tranList" class="stack"></div>
+        </div>
+      </div>
+
+      <!-- 세로(원문→번역) 모드 -->
+      <div id="resPair" hidden>
+        <div id="pairList" class="list"></div>
+      </div>
+    </section>
+
+
+    <p class="hint" style="margin-top:8px">주의: 브라우저에서 직접 API 호출은 프로토타입/개인용에 적합합니다. 운영 전환 시 서버 프록시(Fetch proxy)나 Firebase/Cloudflare Functions로 키 비공개 권장.</p>
+  </main>
+
+  <!-- 설정 모달 -->
+  <div class="overlay" id="settingsOverlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <h2 id="settingsTitle">설정</h2>
+    <div class="grid2">
+      <div>
+        <div class="label">모델</div>
+        <select id="stModel">
+          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+          <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+        </select>
+      </div>
+      <div>
+        <div class="label">톤</div>
+        <select id="stTone">
+          <option value="neutral">중립</option>
+          <option value="formal">격식체</option>
+          <option value="casual">구어체</option>
+        </select>
+      </div>
+      <div>
+        <div class="label">영어 변형</div>
+        <select id="stVariety">
+          <option value="auto">자동</option>
+          <option value="us">미국식</option>
+          <option value="uk">영국식</option>
+        </select>
+      </div>
+      <div>
+        <div class="label">마크업 보존</div>
+        <label class="hint"><input type="checkbox" id="stPreserve" checked> Markdown/플레이스홀더 유지</label>
+      </div>
+      <div>
+        <div class="label">온도(temperature)</div>
+        <div class="range-row">
+          <input type="range" id="stTemp" min="0" max="1" step="0.05" value="0.2" />
+          <span class="badge" id="stTempVal">0.2</span>
+        </div>
+      </div>
+      <div>
+        <div class="label">topP</div>
+        <div class="range-row">
+          <input type="range" id="stTopP" min="0" max="1" step="0.05" value="0.95" />
+          <span class="badge" id="stTopPVal">0.95</span>
+        </div>
+      </div>
+      <div>
+        <div class="label">최대 토큰</div>
+        <input id="stMaxTok" type="number" min="128" max="8192" step="64" value="2048" />
+      </div>
+    </div>
+    <div class="footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
+      <button id="btnCloseSettings" class="ghost">닫기</button>
+      <button id="btnSaveSettings" class="primary">저장</button>
+    </div>
+  </div>
+</div>
+
+  <script type="module" src="./app.js"></script>
+
+</body>
+</html>
