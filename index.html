@@ -126,6 +126,68 @@
     .range-row{display:flex;align-items:center;gap:10px}
     .range-row input[type=range]{flex:1}
 
+    /* 탭 스타일 */
+    .tab-nav{
+      display:flex;
+      gap:2px;
+      margin-bottom:16px;
+      background:#0f1621;
+      border-radius:12px;
+      padding:4px;
+      border:1px solid var(--line);
+    }
+    .tab-btn{
+      flex:1;
+      padding:10px 16px;
+      background:transparent;
+      color:var(--muted);
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      font-size:14px;
+      font-weight:500;
+      transition:all 0.2s ease;
+      position:relative;
+    }
+    .tab-btn:hover{
+      background:#1a2332;
+      color:var(--fg);
+    }
+    .tab-btn.active{
+      background:var(--accent);
+      color:#001226;
+      box-shadow:0 2px 8px rgba(105,177,255,0.3);
+    }
+    .tab-content{
+      display:none;
+    }
+    .tab-content.active{
+      display:block;
+    }
+
+    /* 모바일 탭 반응형 */
+    @media (max-width:768px){
+      .tab-nav{
+        flex-wrap:wrap;
+        gap:4px;
+      }
+      .tab-btn{
+        flex:1 1 calc(50% - 2px);
+        min-width:calc(50% - 2px);
+        padding:8px 12px;
+        font-size:13px;
+      }
+    }
+
+    /* 탭 콘텐츠 애니메이션 */
+    .tab-content{
+      animation:fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(8px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+
   </style>
 </head>
 <body>
@@ -136,27 +198,114 @@
     </div>
   </header>
   <main class="wrap">
-    <!-- API 키 섹션 -->
-    <section class="card" aria-labelledby="sec-key">
-      <div class="row" style="gap:10px;align-items:end">
-        <div class="key-field" style="flex:1;min-width:220px">
-          <div class="label">Gemini API Key</div>
-          <input id="apiKey" type="password" placeholder="ex) AIza..." autocomplete="off" style="width:100%" />
-          <div class="hint">브라우저 <code>localStorage</code>에만 저장됩니다. (기기/브라우저별 별도)</div>
+    <!-- 탭 네비게이션 -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="translate">번역</button>
+      <button class="tab-btn" data-tab="glossary">용어집</button>
+      <button class="tab-btn" data-tab="settings">설정</button>
+      <button class="tab-btn" data-tab="data">데이터</button>
+    </nav>
+
+    <!-- 번역 탭 -->
+    <div class="tab-content active" id="translate-tab">
+      <!-- 언어 선택 및 번역 입력 -->
+      <section class="card">
+        <div class="row" style="gap:10px">
+          <div>
+            <div class="label">원문 언어</div>
+            <select id="srcLang">
+              <option value="auto">자동 감지</option>
+              <option value="ko">한국어</option>
+              <option value="en">영어</option>
+              <option value="ja">일본어</option>
+              <option value="zh">중국어(간체)</option>
+              <option value="de">독일어</option>
+              <option value="fr">프랑스어</option>
+              <option value="es">스페인어</option>
+            </select>
+          </div>
+          <div>
+            <div class="label">목표 언어</div>
+            <select id="tgtLang">
+              <option value="en">영어</option>
+              <option value="ko" selected>한국어</option>
+              <option value="ja">일본어</option>
+              <option value="zh">중국어(간체)</option>
+              <option value="de">독일어</option>
+              <option value="fr">프랑스어</option>
+              <option value="es">스페인어</option>
+            </select>
+          </div>
+          <div class="spacer"></div>
+          <div class="btn-group">
+            <button id="installBtn" class="ghost">앱 설치</button>
+          </div>
         </div>
-        <div class="btn-group">
-          <button id="toggleKey" class="ghost">표시</button>
-          <button id="saveKey" class="primary">키 저장</button>
-          <button id="testKey">키 테스트</button>
+
+        <!-- 번역 입력 영역 -->
+        <div class="note-wrap" style="margin-top:10px">
+          <textarea id="noteInput" rows="3" placeholder="한 줄 입력 후 Enter (또는 번역 버튼)"></textarea>
+          <div class="row" style="margin-top:8px">
+            <div class="hint">Tip: 줄바꿈(Shift+Enter), 전송(Enter).</div>
+            <div class="spacer"></div>
+            <button id="sendBtn" class="primary">번역</button>
+          </div>
         </div>
-        <div id="keyMsg" class="hint"></div>
-      </div>
-    </section>
-    <!-- 용어집 섹션 -->
-    <section class="card" style="margin-top:12px">
-      <details open>
-        <summary class="row" style="gap:8px"><span class="pill"><b>용어집</b><span id="glossCount" class="hint">(0개)</span></span><span class="hint">고정 번역/치환</span></summary>
-        <div class="row" style="margin-top:8px;gap:8px;align-items:end">
+      </section>
+
+      <!-- 번역 결과 -->
+      <section class="card" style="margin-top:12px" id="results">
+        <div class="row result-head">
+          <div class="btn-group">
+            <label class="hint">복사:
+              <select id="copyMode">
+                <option value="tran">번역</option>
+                <option value="orig">원문</option>
+                <option value="both" selected>원문→번역</option>
+              </select>
+            </label>
+            <button id="btnCopySel" class="ghost">선택 복사</button>
+            <button id="btnDeleteSel" class="ghost">선택 삭제</button>
+            <label class="hint"><input type="checkbox" id="selToggle"> 전체선택</label>
+          </div>
+          <div class="label">결과</div>
+          <div class="spacer"></div>
+          <label class="hint">보기:
+            <select id="layoutMode">
+              <option value="split">좌우 2열</option>
+              <option value="pair">세로(원문→번역)</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- 좌우 2열 모드 -->
+        <div id="resSplit" class="grid">
+          <div>
+            <div class="label">원문</div>
+            <div id="origList" class="stack"></div>
+          </div>
+          <div>
+            <div class="label">번역</div>
+            <div id="tranList" class="stack"></div>
+          </div>
+        </div>
+
+        <!-- 세로(원문→번역) 모드 -->
+        <div id="resPair" hidden>
+          <div id="pairList" class="list"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 용어집 탭 -->
+    <div class="tab-content" id="glossary-tab">
+      <section class="card">
+        <div class="row" style="gap:8px;align-items:center;margin-bottom:12px">
+          <span class="pill"><b>용어집</b><span id="glossCount" class="hint">(0개)</span></span>
+          <span class="hint">고정 번역/치환</span>
+        </div>
+        
+        <div class="row" style="gap:8px;align-items:end">
           <div style="flex:1;min-width:180px">
             <div class="label">원문 용어</div>
             <input id="gSrc" placeholder="예: 성경" style="width:100%"/>
@@ -171,166 +320,111 @@
             <button id="gClear" class="ghost">전체 삭제</button>
           </div>
         </div>
-        <div id="gList" style="margin-top:8px;display:grid;gap:6px"></div>
-        <div class="hint" style="margin-top:6px">번역 전에는 프롬프트 지시, 번역 후에는 결정적 치환을 함께 수행합니다.</div>
-      </details>
-    </section>
+        <div id="gList" style="margin-top:12px;display:grid;gap:6px"></div>
+        <div class="hint" style="margin-top:8px">번역 전에는 프롬프트 지시, 번역 후에는 결정적 치환을 함께 수행합니다.</div>
+      </section>
+    </div>
 
-    <!-- 번역 입력 섹션 -->
-    <section class="card" style="margin-top:12px">
-      <div class="row" style="gap:10px">
-        <div>
-          <div class="label">원문 언어</div>
-          <select id="srcLang">
-            <option value="auto">자동 감지</option>
-            <option value="ko">한국어</option>
-            <option value="en">영어</option>
-            <option value="ja">일본어</option>
-            <option value="zh">중국어(간체)</option>
-            <option value="de">독일어</option>
-            <option value="fr">프랑스어</option>
-            <option value="es">스페인어</option>
-          </select>
+    <!-- 설정 탭 -->
+    <div class="tab-content" id="settings-tab">
+      <!-- API 키 섹션 -->
+      <section class="card">
+        <h3 style="margin:0 0 12px;font-size:16px">API 설정</h3>
+        <div class="row" style="gap:10px;align-items:end">
+          <div class="key-field" style="flex:1;min-width:220px">
+            <div class="label">Gemini API Key</div>
+            <input id="apiKey" type="password" placeholder="ex) AIza..." autocomplete="off" style="width:100%" />
+            <div class="hint">브라우저 <code>localStorage</code>에만 저장됩니다. (기기/브라우저별 별도)</div>
+          </div>
+          <div class="btn-group">
+            <button id="toggleKey" class="ghost">표시</button>
+            <button id="saveKey" class="primary">키 저장</button>
+            <button id="testKey">키 테스트</button>
+          </div>
+          <div id="keyMsg" class="hint"></div>
         </div>
-        <div>
-          <div class="label">목표 언어</div>
-          <select id="tgtLang">
-            <option value="en">영어</option>
-            <option value="ko" selected>한국어</option>
-            <option value="ja">일본어</option>
-            <option value="zh">중국어(간체)</option>
-            <option value="de">독일어</option>
-            <option value="fr">프랑스어</option>
-            <option value="es">스페인어</option>
-          </select>
-        </div>
-        <div class="spacer"></div>
-        <div class="btn-group">
-          <button id="openSettings" class="ghost">설정</button>
-          <button id="installBtn" class="ghost">앱 설치</button>
-        </div>
-      </div>
+      </section>
 
-      <!-- ★ textarea는 별도 블록(note-wrap) 안에서 100% 폭으로 -->
-      <div class="note-wrap" style="margin-top:10px">
-        <textarea id="noteInput" rows="3" placeholder="한 줄 입력 후 Enter (또는 번역 버튼)"></textarea>
-        <div class="row" style="margin-top:8px">
-          <div class="hint">Tip: 줄바꿈(Shift+Enter), 전송(Enter).</div>
-          <div class="spacer"></div>
-          <button id="sendBtn" class="primary">번역</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 결과 섹션 -->
-    <section class="card" style="margin-top:12px" id="results">
-      <div class="row result-head">
-        <div class="btn-group">
-          <label class="hint">복사:
-            <select id="copyMode">
-              <option value="tran">번역</option>
-              <option value="orig">원문</option>
-              <option value="both" selected>원문→번역</option>
+      <!-- 번역 설정 -->
+      <section class="card" style="margin-top:12px">
+        <h3 style="margin:0 0 12px;font-size:16px">번역 설정</h3>
+        <div class="grid2">
+          <div>
+            <div class="label">모델</div>
+            <select id="stModel">
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+              <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
             </select>
-          </label>
-          <button id="btnCopySel" class="ghost">선택 복사</button>
-          <button id="btnDeleteSel" class="ghost">선택 삭제</button>
-          <button id="btnSaveNote" class="ghost">노트 저장</button>
+          </div>
+          <div>
+            <div class="label">톤</div>
+            <select id="stTone">
+              <option value="neutral">중립</option>
+              <option value="formal">격식체</option>
+              <option value="casual">구어체</option>
+            </select>
+          </div>
+          <div>
+            <div class="label">영어 변형</div>
+            <select id="stVariety">
+              <option value="auto">자동</option>
+              <option value="us">미국식</option>
+              <option value="uk">영국식</option>
+            </select>
+          </div>
+          <div>
+            <div class="label">마크업 보존</div>
+            <label class="hint"><input type="checkbox" id="stPreserve" checked> Markdown/플레이스홀더 유지</label>
+          </div>
+          <div>
+            <div class="label">온도(temperature)</div>
+            <div class="range-row">
+              <input type="range" id="stTemp" min="0" max="1" step="0.05" value="0.2" />
+              <span class="badge" id="stTempVal">0.2</span>
+            </div>
+          </div>
+          <div>
+            <div class="label">topP</div>
+            <div class="range-row">
+              <input type="range" id="stTopP" min="0" max="1" step="0.05" value="0.95" />
+              <span class="badge" id="stTopPVal">0.95</span>
+            </div>
+          </div>
+          <div>
+            <div class="label">최대 토큰</div>
+            <input id="stMaxTok" type="number" min="128" max="8192" step="64" value="2048" />
+          </div>
+        </div>
+        <div class="footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
+          <button id="btnSaveSettings" class="primary">설정 저장</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- 데이터 탭 -->
+    <div class="tab-content" id="data-tab">
+      <section class="card">
+        <h3 style="margin:0 0 12px;font-size:16px">데이터 관리</h3>
+        <div class="btn-group" style="margin-bottom:12px">
+          <button id="btnSaveNote" class="primary">노트 저장</button>
           <button id="btnLoadNote" class="ghost">노트 불러오기</button>
-          <label class="hint"><input type="checkbox" id="selToggle"> 전체선택</label>
+          <button id="exportBtn" class="ghost">CSV 내보내기</button>
+          <button id="clearBtn" class="ghost">전체 삭제</button>
         </div>
-        <div class="label">결과</div>
-        <div class="spacer"></div>
-        <label class="hint">보기:
-          <select id="layoutMode">
-            <option value="split">좌우 2열</option>
-            <option value="pair">세로(원문→번역)</option>
-          </select>
-        </label>
-      </div>
-
-      <!-- 좌우 2열 모드 -->
-      <div id="resSplit" class="grid">
-        <div>
-          <div class="label">원문</div>
-          <div id="origList" class="stack"></div>
+        <div class="hint">
+          <strong>노트 저장:</strong> 선택된 번역 항목들을 별도 노트로 저장합니다.<br>
+          <strong>노트 불러오기:</strong> 저장된 노트를 불러와 현재 목록에 추가합니다.<br>
+          <strong>CSV 내보내기:</strong> 모든 번역 결과를 CSV 파일로 다운로드합니다.
         </div>
-        <div>
-          <div class="label">번역</div>
-          <div id="tranList" class="stack"></div>
-        </div>
-      </div>
-
-      <!-- 세로(원문→번역) 모드 -->
-      <div id="resPair" hidden>
-        <div id="pairList" class="list"></div>
-      </div>
-    </section>
-
+      </section>
+    </div>
 
     <p class="hint" style="margin-top:8px">주의: 브라우저에서 직접 API 호출은 프로토타입/개인용에 적합합니다. 운영 전환 시 서버 프록시(Fetch proxy)나 Firebase/Cloudflare Functions로 키 비공개 권장.</p>
   </main>
 
-  <!-- 설정 모달 -->
-  <div class="overlay" id="settingsOverlay" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-    <h2 id="settingsTitle">설정</h2>
-    <div class="grid2">
-      <div>
-        <div class="label">모델</div>
-        <select id="stModel">
-          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
-          <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-          <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-        </select>
-      </div>
-      <div>
-        <div class="label">톤</div>
-        <select id="stTone">
-          <option value="neutral">중립</option>
-          <option value="formal">격식체</option>
-          <option value="casual">구어체</option>
-        </select>
-      </div>
-      <div>
-        <div class="label">영어 변형</div>
-        <select id="stVariety">
-          <option value="auto">자동</option>
-          <option value="us">미국식</option>
-          <option value="uk">영국식</option>
-        </select>
-      </div>
-      <div>
-        <div class="label">마크업 보존</div>
-        <label class="hint"><input type="checkbox" id="stPreserve" checked> Markdown/플레이스홀더 유지</label>
-      </div>
-      <div>
-        <div class="label">온도(temperature)</div>
-        <div class="range-row">
-          <input type="range" id="stTemp" min="0" max="1" step="0.05" value="0.2" />
-          <span class="badge" id="stTempVal">0.2</span>
-        </div>
-      </div>
-      <div>
-        <div class="label">topP</div>
-        <div class="range-row">
-          <input type="range" id="stTopP" min="0" max="1" step="0.05" value="0.95" />
-          <span class="badge" id="stTopPVal">0.95</span>
-        </div>
-      </div>
-      <div>
-        <div class="label">최대 토큰</div>
-        <input id="stMaxTok" type="number" min="128" max="8192" step="64" value="2048" />
-      </div>
-    </div>
-    <div class="footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
-      <button id="btnCloseSettings" class="ghost">닫기</button>
-      <button id="btnSaveSettings" class="primary">저장</button>
-    </div>
-  </div>
-</div>
 
   <script type="module" src="./app.js"></script>
 

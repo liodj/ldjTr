@@ -22,11 +22,11 @@
     src: $('#srcLang'), tgt: $('#tgtLang'), note: $('#noteInput'), send: $('#sendBtn'),
     origList: $('#origList'), tranList: $('#tranList'), exportBtn: $('#exportBtn'), clearBtn: $('#clearBtn'), modelBadge: $('#modelBadge'),
     gSrc: $('#gSrc'), gTgt: $('#gTgt'), gWhole: $('#gWhole'), gAdd: $('#gAdd'), gClear: $('#gClear'), gList: $('#gList'), gCount: $('#glossCount'),
-    installBtn: $('#installBtn'), openSettings: $('#openSettings'), overlay: $('#settingsOverlay'),
+    installBtn: $('#installBtn'),
     stModel: $('#stModel'), stTone: $('#stTone'), stVariety: $('#stVariety'), stPreserve: $('#stPreserve'),
     stTemp: $('#stTemp'), stTopP: $('#stTopP'), stMaxTok: $('#stMaxTok'),
     stTempVal: $('#stTempVal'), stTopPVal: $('#stTopPVal'),
-    btnSaveSettings: $('#btnSaveSettings'), btnCloseSettings: $('#btnCloseSettings'),
+    btnSaveSettings: $('#btnSaveSettings'),
     layoutMode: $('#layoutMode'),
     resSplit: $('#resSplit'),
     resPair: $('#resPair'),
@@ -37,6 +37,9 @@
     btnSaveNote: $('#btnSaveNote'),
     btnLoadNote: $('#btnLoadNote'),
     selToggle: $('#selToggle'),
+    // 탭 관련 요소들
+    tabBtns: document.querySelectorAll('.tab-btn'),
+    tabContents: document.querySelectorAll('.tab-content'),
   };
 
   // === localStorage 래퍼 ===
@@ -69,6 +72,9 @@
 
   if (el.layoutMode) el.layoutMode.value = LS.layout;
   applyLayout();
+
+  // 탭 네비게이션 초기화
+  initTabs();
 
 
   // === PWA 설치 & SW ===
@@ -120,13 +126,11 @@
   });
   if (el.gClear) el.gClear.addEventListener('click', () => { LS.glossary = []; renderGlossary(); });
 
-  if (el.openSettings) el.openSettings.addEventListener('click', () => { el.overlay.classList.add('show'); });
-  if (el.btnCloseSettings) el.btnCloseSettings.addEventListener('click', () => { el.overlay.classList.remove('show'); loadSettingsToUI(); });
-  if (el.overlay) el.overlay.addEventListener('click', (e) => { if (e.target === el.overlay) el.overlay.classList.remove('show'); });
+  // 탭 네비게이션 이벤트는 initTabs()에서 처리
 
   if (el.stTemp) el.stTemp.addEventListener('input', () => { el.stTempVal.textContent = String(el.stTemp.value); });
   if (el.stTopP) el.stTopP.addEventListener('input', () => { el.stTopPVal.textContent = String(el.stTopP.value); });
-  if (el.btnSaveSettings) el.btnSaveSettings.addEventListener('click', () => { saveSettingsFromUI(); el.overlay.classList.remove('show'); });
+  if (el.btnSaveSettings) el.btnSaveSettings.addEventListener('click', () => { saveSettingsFromUI(); });
   if (el.layoutMode) el.layoutMode.addEventListener('change', () => {
     LS.layout = el.layoutMode.value;
     applyLayout();
@@ -143,6 +147,62 @@
         });
     });
 
+
+  // === 탭 네비게이션 함수들 ===
+  function initTabs() {
+    // 탭 버튼 이벤트 리스너 추가
+    el.tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.dataset.tab;
+        switchTab(tabId);
+      });
+    });
+    
+    // 기본 탭 설정
+    const savedTab = localStorage.getItem('activeTab') || 'translate';
+    switchTab(savedTab);
+  }
+
+  function switchTab(tabId) {
+    // 모든 탭 버튼과 콘텐츠 비활성화
+    el.tabBtns.forEach(btn => btn.classList.remove('active'));
+    el.tabContents.forEach(content => content.classList.remove('active'));
+    
+    // 선택된 탭 활성화
+    const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
+    const activeContent = document.getElementById(`${tabId}-tab`);
+    
+    if (activeBtn && activeContent) {
+      activeBtn.classList.add('active');
+      activeContent.classList.add('active');
+      
+      // 현재 탭을 localStorage에 저장
+      localStorage.setItem('activeTab', tabId);
+      
+      // 탭별 특별 처리
+      handleTabSwitch(tabId);
+    }
+  }
+
+  function handleTabSwitch(tabId) {
+    switch(tabId) {
+      case 'settings':
+        // 설정 탭으로 이동할 때 UI 새로고침
+        loadSettingsToUI();
+        break;
+      case 'glossary':
+        // 용어집 탭으로 이동할 때 렌더링 새로고침
+        renderGlossary();
+        break;
+      case 'data':
+        // 데이터 탭으로 이동할 때는 특별한 처리 없음
+        break;
+      case 'translate':
+      default:
+        // 번역 탭으로 이동할 때는 특별한 처리 없음
+        break;
+    }
+  }
 
   // === 함수들 ===
   function keyMsg(msg, cls) {
