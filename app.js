@@ -5,10 +5,11 @@
   // === 기본값 ===
   const DEFAULTS = {
     model: 'gemini-2.5-flash',
-    explainModel: 'gemini-1.5-flash',  // 해설용 모델 (리소스 적게 사용)
+    explainModel: 'gemini-2.0-flash-exp',  // 해설용 모델
     temperature: 0.2,
     topP: 0.95,
     maxTokens: 2048,
+    explainMaxTokens: 4096,  // 해설용 maxTokens (길어진 응답 대비)
     tone: 'neutral',   // neutral | formal | casual
     variety: 'auto',   // auto | us | uk
     preserve: true,
@@ -26,7 +27,7 @@
     gSrc: $('#gSrc'), gTgt: $('#gTgt'), gWhole: $('#gWhole'), gAdd: $('#gAdd'), gClear: $('#gClear'), gList: $('#gList'), gCount: $('#glossCount'),
     installBtn: $('#installBtn'),
     stModel: $('#stModel'), stExplainModel: $('#stExplainModel'), stTone: $('#stTone'), stVariety: $('#stVariety'), stPreserve: $('#stPreserve'),
-    stTemp: $('#stTemp'), stTopP: $('#stTopP'), stMaxTok: $('#stMaxTok'), stCustomPrompt: $('#stCustomPrompt'),
+    stTemp: $('#stTemp'), stTopP: $('#stTopP'), stMaxTok: $('#stMaxTok'), stExplainMaxTok: $('#stExplainMaxTok'), stCustomPrompt: $('#stCustomPrompt'),
     stTempVal: $('#stTempVal'), stTopPVal: $('#stTopPVal'),
     btnSaveSettings: $('#btnSaveSettings'),
     explainModal: $('#explainModal'), explainContent: $('#explainContent'), explainClose: $('#explainClose'),
@@ -524,6 +525,7 @@
     if (el.stTopPVal) el.stTopPVal.textContent = String(el.stTopP.value);
   }
   if (el.stMaxTok) el.stMaxTok.value = String(st.maxTokens ?? DEFAULTS.maxTokens);
+  if (el.stExplainMaxTok) el.stExplainMaxTok.value = String(st.explainMaxTokens ?? DEFAULTS.explainMaxTokens);
   if (el.stCustomPrompt) el.stCustomPrompt.value = String(st.customPrompt || '');
 
   if (el.modelBadge) el.modelBadge.textContent = 'model: ' + (st.model || DEFAULTS.model);
@@ -541,6 +543,7 @@
       temperature: el.stTemp ? Number(el.stTemp.value) : st.temperature,
       topP: el.stTopP ? Number(el.stTopP.value) : st.topP,
       maxTokens: el.stMaxTok ? Number(el.stMaxTok.value) : st.maxTokens,
+      explainMaxTokens: el.stExplainMaxTok ? Number(el.stExplainMaxTok.value) : (st.explainMaxTokens ?? DEFAULTS.explainMaxTokens),
       customPrompt: el.stCustomPrompt ? el.stCustomPrompt.value.trim() : (st.customPrompt || '')
     };
     LS.settings = next; loadSettingsToUI();
@@ -837,7 +840,7 @@ Use line breaks between sections to improve readability. Answer can be somewhat 
       generationConfig: {
         temperature: 0.7,
         topP: 0.95,
-        maxOutputTokens: 2048
+        maxOutputTokens: Number(st.explainMaxTokens || DEFAULTS.explainMaxTokens)
       }
     };
 
