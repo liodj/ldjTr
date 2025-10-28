@@ -24,7 +24,6 @@
     .hint{color:var(--muted);font-size:12px}
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
     @media (min-width:900px){ .grid{grid-template-columns:1.1fr 1fr} }
-    .line{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;background:#0f1621;border:1px solid #1b2536;border-radius:14px;padding:10px}
     .label{font-size:12px;color:#8ea5bd}
     .orig,.tran{white-space:pre-wrap;word-break:break-word}
     .toolbar{display:flex;gap:8px;align-items:center}
@@ -61,7 +60,6 @@
     .result-head{align-items:center}
 
     /* compact line for split view */
-    .line{padding:6px 8px}
     .badge{padding:1px 6px; font-size:11px}
     .toolbar button{padding:6px 8px}
 
@@ -79,6 +77,7 @@
       padding:6px 10px;
       align-items:start;
       border-top:1px solid #1b2536;
+      cursor:pointer;
     }
     .list .item:first-child{ border-top:none }
     .idx{
@@ -100,8 +99,10 @@
       box-shadow:0 0 0 2px rgba(105,177,255,.35) inset;border-radius:6px
     }
 
-    /* 체크박스 정렬 */
-    .toolbar .sel{margin-right:6px}
+    /* 선택된 아이템 표시 */
+    .item.selected, .line.selected {
+      background: rgba(105, 177, 255, 0.1) !important;
+    }
 
     /* 설정 모달 */
     .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);z-index:30}
@@ -178,7 +179,7 @@
     /* 좌우 2열(split) 모드 스타일 개선 */
     #resSplit.list {
         gap: 0;
-        padding: 0;
+        padding: 12px;
     }
     #resSplit.list > div:first-child {
         border-right: 1px solid var(--line);
@@ -193,20 +194,17 @@
         border-top: 1px solid #1b2536;
         border-radius: 0;
         padding: 10px 0;
-        margin: 0 -12px; /* 양쪽 패딩을 무시하고 선을 끝까지 긋기 */
-        padding-left: 12px;
-        padding-right: 12px;
     }
     #resSplit.list .stack > .line:first-child {
         border-top: none;
     }
     .line {
-        /* 기존 .line 스타일에서 border, background, border-radius 제거 */
         display: grid;
         grid-template-columns: auto 1fr auto;
         gap: 8px;
         align-items: start;
         padding: 6px 8px;
+        cursor: pointer;
     }
 
 

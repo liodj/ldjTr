@@ -151,11 +151,12 @@
     if (el.btnCopySel) el.btnCopySel.addEventListener('click', copySelected);
     if (el.selToggle) el.selToggle.addEventListener('change', (e) => {
         const on = e.target.checked;
-        document.querySelectorAll('input.sel[data-idx]').forEach(cb => {
-            cb.checked = on;
-            const i = Number(cb.dataset.idx);
+        const allItemCount = LS.lines.length;
+        for (let i = 0; i < allItemCount; i++) {
             if (on) selected.add(i); else selected.delete(i);
-        });
+        }
+        // UI 업데이트를 위해 다시 렌더링
+        renderLines(LS.lines);
     });
 
     // 해설 모달 닫기
@@ -253,10 +254,36 @@
     applyLayout();
   }
 
+  function toggleSelection(idx) {
+    const isSelected = selected.has(idx);
+    const elements = document.querySelectorAll(`.item[data-idx="${idx}"], .line[data-idx="${idx}"]`);
+    
+    if (isSelected) {
+      selected.delete(idx);
+      elements.forEach(e => e.classList.remove('selected'));
+    } else {
+      selected.add(idx);
+      elements.forEach(e => e.classList.add('selected'));
+    }
+
+    // 전체 선택 체크박스 상태 업데이트
+    if (el.selToggle) {
+        const totalCount = LS.lines.length;
+        el.selToggle.checked = totalCount > 0 && selected.size === totalCount;
+    }
+  }
 
   function pairItemEl(l, idx){
     const wrap = document.createElement('div');
     wrap.className = 'item';
+    wrap.dataset.idx = idx;
+    if (selected.has(idx)) wrap.classList.add('selected');
+
+    wrap.addEventListener('click', (e) => {
+        // 툴바 버튼 클릭 시에는 선택 토글 방지
+        if (e.target.closest('.toolbar')) return;
+        toggleSelection(idx);
+    });
 
     const id = document.createElement('div');
     id.className = 'idx';
@@ -279,15 +306,10 @@
         const lines = LS.lines; lines[idx].tran = t.textContent || ''; LS.lines = lines;
     });
 
-    // 툴바 (체크/복사/재번역/해설)
+    // 툴바 (복사/재번역/해설)
     const tools = document.createElement('div');
     tools.className = 'toolbar';
-    const cb = document.createElement('input');
-    cb.type='checkbox'; cb.className='sel'; cb.dataset.idx = idx;
-    cb.checked = selected.has(idx);
-    cb.addEventListener('change', () => {
-        if (cb.checked) selected.add(idx); else selected.delete(idx);
-    });
+
     const copy = document.createElement('button'); copy.textContent='복사';
     copy.setAttribute('aria-label', '복사');
     copy.addEventListener('click', ()=> {
@@ -331,7 +353,7 @@
       const final = applyDeterministicGlossary(raw, LS.glossary);
       updateLines(lines => { lines[idx].tran = final; return lines; });
     }, '번역중…'));
-    tools.appendChild(cb); tools.appendChild(copy); tools.appendChild(explain); tools.appendChild(explainRefresh); tools.appendChild(rerun);
+    tools.appendChild(copy); tools.appendChild(explain); tools.appendChild(explainRefresh); tools.appendChild(rerun);
 
     text.appendChild(o); text.appendChild(t); text.appendChild(tools);
     wrap.appendChild(id); wrap.appendChild(text);
@@ -343,6 +365,13 @@
 
     const div = document.createElement('div');
     div.className = 'line';
+    div.dataset.idx = idx;
+    if (selected.has(idx)) div.classList.add('selected');
+
+    div.addEventListener('click', (e) => {
+        if (e.target.closest('.toolbar') || e.target.closest('.editable')) return;
+        toggleSelection(idx);
+    });
 
     const num = document.createElement('div');
     num.textContent = idx + 1;
@@ -360,20 +389,10 @@
         if (isTran) lines[idx].tran = val;
         else        lines[idx].orig = val;
         LS.lines = lines;
-        // 원문 수정 후 즉시 재번역이 필요한 경우는 버튼 눌러서 수행 (아래)
     });
 
     const btns = document.createElement('div');
     btns.className = 'toolbar';
-
-    // 체크박스
-    const cb = document.createElement('input');
-    cb.type = 'checkbox'; cb.className = 'sel'; cb.dataset.idx = idx;
-    cb.checked = selected.has(idx);
-    cb.addEventListener('change', () => {
-        if (cb.checked) selected.add(idx); else selected.delete(idx);
-    });
-    btns.appendChild(cb);
 
     // 복사
     const copy = document.createElement('button');
@@ -463,7 +482,7 @@
   }
 
   function escapeHTML(s) {
-    return String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+    return String(s).replace(/[&<>""]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
   function loadSettingsToUI() {
@@ -554,17 +573,17 @@
     }
     const customPrompt = (st.customPrompt || '').trim();
     const customPart = customPrompt ? '\n\n' + customPrompt : '';
-    return 'You are a professional translation engine. ' +
-      'Translate the following text from ' + from + ' to ' + tgt + '. ' +
-      styleDirectives(tgt) + glossLines +
-      customPart +
-      '\n\nReturn only the translation with no quotes or extra commentary.' +
+    return 'You are a professional translation engine. ' + 
+      'Translate the following text from ' + from + ' to ' + tgt + '. ' + 
+      styleDirectives(tgt) + glossLines + 
+      customPart + 
+      '\n\nReturn only the translation with no quotes or extra commentary.' + 
       '\n\nText:\n' + text;
   }
 
   function applyDeterministicGlossary(out, glossary) {
     if (!glossary || !glossary.length) return out;
-    const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const esc = (s) => String(s).replace(/[.*+?^${}()|[\\]/g, '\\$&');
     let t = String(out);
     glossary.forEach((item) => {
       const escSrc = esc(item.src);
@@ -729,8 +748,8 @@
         maxOutputTokens: Number(st.maxTokens || 2048)
       }
     };
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
-                encodeURIComponent(st.model || DEFAULTS.model) +
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + 
+                encodeURIComponent(st.model || DEFAULTS.model) + 
                 ':generateContent';
     // timeout 지원 (기본 15s)
     const timeoutMs = Number(st.timeoutMs || 15000);
@@ -818,8 +837,8 @@ Use line breaks between sections to improve readability. Answer can be somewhat 
     };
 
     const explainModel = st.explainModel || DEFAULTS.explainModel;
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
-                encodeURIComponent(explainModel) +
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + 
+                encodeURIComponent(explainModel) + 
                 ':generateContent';
 
     const ac = new AbortController();
