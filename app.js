@@ -62,7 +62,7 @@
     set glossary(v){ localStorage.setItem('glossary', JSON.stringify(v || [])); },
     get settings(){ try { return JSON.parse(localStorage.getItem('settings') || 'null') || DEFAULTS; } catch { return DEFAULTS; } },
     set settings(v){ localStorage.setItem('settings', JSON.stringify(v || DEFAULTS)); },
-    get layout(){ return localStorage.getItem('layout') || 'split'; },
+    get layout(){ return localStorage.getItem('layout') || 'pair'; },
     set layout(v){ localStorage.setItem('layout', v); },
   };
 

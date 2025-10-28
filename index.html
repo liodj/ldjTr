@@ -94,19 +94,6 @@
       outline-offset:2px;   /* 바깥으로 2px */
     }
 
-    /* compact한 라인 간격 (좌우 2열) */
-    .line{padding:6px 8px}
-    .badge{padding:1px 6px;font-size:11px}
-    .toolbar button{padding:6px 8px}
-
-    /* 세로(pair) 모드 큰 틀 + 구분선 */
-    .list{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0f1621}
-    .list .item{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:6px 10px;align-items:start;border-top:1px solid #1b2536}
-    .list .item:first-child{border-top:none}
-    .idx{min-width:28px;text-align:center;font-size:12px;color:#9db0c6;padding-top:2px}
-    .text .orig{color:#8ea5bd;font-size:13px;line-height:1.4;margin-bottom:2px}
-    .text .tran{line-height:1.5}
-
     /* 편집 가능 표시 */
     .editable{outline:none}
     .editable[contenteditable="true"]:focus{
@@ -188,6 +175,41 @@
       to{opacity:1;transform:translateY(0)}
     }
 
+    /* 좌우 2열(split) 모드 스타일 개선 */
+    #resSplit.list {
+        gap: 0;
+        padding: 0;
+    }
+    #resSplit.list > div:first-child {
+        border-right: 1px solid var(--line);
+        padding-right: 12px;
+    }
+    #resSplit.list > div {
+        padding-left: 12px;
+    }
+    #resSplit.list .line {
+        border: none;
+        background: transparent;
+        border-top: 1px solid #1b2536;
+        border-radius: 0;
+        padding: 10px 0;
+        margin: 0 -12px; /* 양쪽 패딩을 무시하고 선을 끝까지 긋기 */
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    #resSplit.list .stack > .line:first-child {
+        border-top: none;
+    }
+    .line {
+        /* 기존 .line 스타일에서 border, background, border-radius 제거 */
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px;
+        align-items: start;
+        padding: 6px 8px;
+    }
+
+
   </style>
 </head>
 <body>
@@ -203,7 +225,6 @@
       <button class="tab-btn active" data-tab="translate">번역</button>
       <button class="tab-btn" data-tab="glossary">용어집</button>
       <button class="tab-btn" data-tab="settings">설정</button>
-      <button class="tab-btn" data-tab="data">데이터</button>
     </nav>
 
     <!-- 번역 탭 -->
@@ -244,8 +265,7 @@
 
         <!-- 번역 입력 영역 -->
         <div class="note-wrap" style="margin-top:10px">
-          <textarea id="noteInput" rows="3" placeholder="한 줄 입력 후 Enter (또는 번역 버튼)"></textarea>
-          <div class="row" style="margin-top:8px">
+          <textarea id="noteInput" rows="3" placeholder="한 줄 입력 후 Enter (또는 번역 버튼)"></textarea>          <div class="row" style="margin-top:8px">
             <div class="hint">Tip: 줄바꿈(Shift+Enter), 전송(Enter).</div>
             <div class="spacer"></div>
             <button id="sendBtn" class="primary">번역</button>
@@ -279,7 +299,7 @@
         </div>
 
         <!-- 좌우 2열 모드 -->
-        <div id="resSplit" class="grid">
+        <div id="resSplit" class="grid list">
           <div>
             <div class="label">원문</div>
             <div id="origList" class="stack"></div>
@@ -293,6 +313,21 @@
         <!-- 세로(원문→번역) 모드 -->
         <div id="resPair" hidden>
           <div id="pairList" class="list"></div>
+        </div>
+        
+        <!-- 데이터 관리 -->
+        <div style="margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px;">
+            <h3 style="margin:0 0 12px;font-size:16px">데이터 관리</h3>
+            <div class="btn-group" style="margin-bottom:12px">
+              <button id="btnSaveNote" class="primary">선택 항목 노트 저장</button>
+              <button id="btnLoadNote" class="ghost">노트 불러오기</button>
+              <button id="exportBtn" class="ghost">전체 CSV 내보내기</button>
+              <button id="clearBtn" class="ghost">전체 삭제</button>
+            </div>
+            <div class="hint">
+              <strong>노트:</strong> 선택한 항목들을 브라우저에 저장하거나 불러옵니다.<br>
+              <strong>CSV:</strong> 현재까지 번역한 모든 내용을 파일로 다운로드합니다.
+            </div>
         </div>
       </section>
     </div>
@@ -421,24 +456,6 @@
         </div>
         <div class="footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
           <button id="btnSaveSettings" class="primary">설정 저장</button>
-        </div>
-      </section>
-    </div>
-
-    <!-- 데이터 탭 -->
-    <div class="tab-content" id="data-tab">
-      <section class="card">
-        <h3 style="margin:0 0 12px;font-size:16px">데이터 관리</h3>
-        <div class="btn-group" style="margin-bottom:12px">
-          <button id="btnSaveNote" class="primary">노트 저장</button>
-          <button id="btnLoadNote" class="ghost">노트 불러오기</button>
-          <button id="exportBtn" class="ghost">CSV 내보내기</button>
-          <button id="clearBtn" class="ghost">전체 삭제</button>
-        </div>
-        <div class="hint">
-          <strong>노트 저장:</strong> 선택된 번역 항목들을 별도 노트로 저장합니다.<br>
-          <strong>노트 불러오기:</strong> 저장된 노트를 불러와 현재 목록에 추가합니다.<br>
-          <strong>CSV 내보내기:</strong> 모든 번역 결과를 CSV 파일로 다운로드합니다.
         </div>
       </section>
     </div>
