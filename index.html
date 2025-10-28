@@ -397,6 +397,11 @@
             <div class="label">최대 토큰</div>
             <input id="stMaxTok" type="number" min="128" max="8192" step="64" value="2048" />
           </div>
+          <div style="grid-column:1/-1">
+            <div class="label">커스텀 프롬프트 (선택)</div>
+            <textarea id="stCustomPrompt" placeholder="예: 문맥에 맞게 자연스럽게, 전문가 수준으로 번역" rows="2" style="width:100%"></textarea>
+            <div class="hint">번역 요청 시 기본 프롬프트에 추가로 전달됩니다.</div>
+          </div>
         </div>
         <div class="footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
           <button id="btnSaveSettings" class="primary">설정 저장</button>
@@ -425,6 +430,16 @@
     <p class="hint" style="margin-top:8px">주의: 브라우저에서 직접 API 호출은 프로토타입/개인용에 적합합니다. 운영 전환 시 서버 프록시(Fetch proxy)나 Firebase/Cloudflare Functions로 키 비공개 권장.</p>
   </main>
 
+  <!-- 해설 모달 -->
+  <div class="overlay" id="explainModal">
+    <div class="modal">
+      <h2>번역 해설</h2>
+      <div style="margin-top:12px;padding:12px;background:#0f1621;border-radius:8px;min-height:100px;max-height:400px;overflow-y:auto" id="explainContent"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button id="explainClose" class="primary">닫기</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="./app.js"></script>
 

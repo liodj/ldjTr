@@ -10,7 +10,8 @@
     maxTokens: 2048,
     tone: 'neutral',   // neutral | formal | casual
     variety: 'auto',   // auto | us | uk
-    preserve: true
+    preserve: true,
+    customPrompt: ''   // 사용자 정의 추가 프롬프트
   };
 
   const selected = new Set(); // 체크된 라인 인덱스 보관
@@ -24,9 +25,10 @@
     gSrc: $('#gSrc'), gTgt: $('#gTgt'), gWhole: $('#gWhole'), gAdd: $('#gAdd'), gClear: $('#gClear'), gList: $('#gList'), gCount: $('#glossCount'),
     installBtn: $('#installBtn'),
     stModel: $('#stModel'), stTone: $('#stTone'), stVariety: $('#stVariety'), stPreserve: $('#stPreserve'),
-    stTemp: $('#stTemp'), stTopP: $('#stTopP'), stMaxTok: $('#stMaxTok'),
+    stTemp: $('#stTemp'), stTopP: $('#stTopP'), stMaxTok: $('#stMaxTok'), stCustomPrompt: $('#stCustomPrompt'),
     stTempVal: $('#stTempVal'), stTopPVal: $('#stTopPVal'),
     btnSaveSettings: $('#btnSaveSettings'),
+    explainModal: $('#explainModal'), explainContent: $('#explainContent'), explainClose: $('#explainClose'),
     layoutMode: $('#layoutMode'),
     resSplit: $('#resSplit'),
     resPair: $('#resPair'),
@@ -147,6 +149,15 @@
         });
     });
 
+    // 해설 모달 닫기
+    if (el.explainClose) el.explainClose.addEventListener('click', () => {
+      if (el.explainModal) el.explainModal.classList.remove('show');
+    });
+    // 모달 바깥 클릭 시 닫기
+    if (el.explainModal) el.explainModal.addEventListener('click', (e) => {
+      if (e.target === el.explainModal) el.explainModal.classList.remove('show');
+    });
+
 
   // === 탭 네비게이션 함수들 ===
   function initTabs() {
@@ -259,7 +270,7 @@
         const lines = LS.lines; lines[idx].tran = t.textContent || ''; LS.lines = lines;
     });
 
-    // 툴바 (체크/복사/재번역)
+    // 툴바 (체크/복사/재번역/해설)
     const tools = document.createElement('div');
     tools.className = 'toolbar';
     const cb = document.createElement('input');
@@ -269,27 +280,39 @@
         if (cb.checked) selected.add(idx); else selected.delete(idx);
     });
     const copy = document.createElement('button'); copy.textContent='복사';
-  copy.setAttribute('aria-label', '복사');
-  copy.addEventListener('click', ()=> {
+    copy.setAttribute('aria-label', '복사');
+    copy.addEventListener('click', ()=> {
         const mode = el.copyMode?.value || 'both';
         const txt = (mode==='orig') ? o.textContent :
                     (mode==='tran') ? t.textContent :
                     (o.textContent + '\n' + t.textContent);
         navigator.clipboard.writeText(txt || '');
     });
-  const rerun = document.createElement('button'); rerun.textContent='재번역'; rerun.setAttribute('aria-label', '재번역');
-  rerun.addEventListener('click', async ()=> {
-    const apiKey = (el.apiKey?.value || '').trim();
-    if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
-    rerun.disabled = true; const prev = rerun.textContent; rerun.textContent = '번역중…';
-    try{
-    const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?el.src.value:'auto'), (el.tgt?el.tgt.value:'ko'));
-    const final = applyDeterministicGlossary(raw, LS.glossary);
-    updateLines(lines => { lines[idx].tran = final; return lines; });
-    }catch(err){ console.error('retranslate error', err); alert('재번역 실패: ' + (err?.message || String(err))); }
-    finally { rerun.disabled = false; rerun.textContent = prev; }
-  });
-    tools.appendChild(cb); tools.appendChild(copy); tools.appendChild(rerun);
+    const explain = document.createElement('button'); explain.textContent='해설'; explain.setAttribute('aria-label', '해설');
+    explain.addEventListener('click', async ()=> {
+      const apiKey = (el.apiKey?.value || '').trim();
+      if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
+      explain.disabled = true; const prev = explain.textContent; explain.textContent = '요청중…';
+      try{
+        const orig = o.textContent; const tran = t.textContent;
+        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko');
+        showExplanation(explanation);
+      }catch(err){ console.error('explain error', err); alert('해설 가져오기 실패: ' + (err?.message || String(err))); }
+      finally { explain.disabled = false; explain.textContent = prev; }
+    });
+    const rerun = document.createElement('button'); rerun.textContent='재번역'; rerun.setAttribute('aria-label', '재번역');
+    rerun.addEventListener('click', async ()=> {
+      const apiKey = (el.apiKey?.value || '').trim();
+      if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
+      rerun.disabled = true; const prev = rerun.textContent; rerun.textContent = '번역중…';
+      try{
+      const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?el.src.value:'auto'), (el.tgt?el.tgt.value:'ko'));
+      const final = applyDeterministicGlossary(raw, LS.glossary);
+      updateLines(lines => { lines[idx].tran = final; return lines; });
+      }catch(err){ console.error('retranslate error', err); alert('재번역 실패: ' + (err?.message || String(err))); }
+      finally { rerun.disabled = false; rerun.textContent = prev; }
+    });
+    tools.appendChild(cb); tools.appendChild(copy); tools.appendChild(explain); tools.appendChild(rerun);
 
     text.appendChild(o); text.appendChild(t); text.appendChild(tools);
     wrap.appendChild(id); wrap.appendChild(text);
@@ -336,9 +359,29 @@
     // 복사
     const copy = document.createElement('button');
     copy.textContent = '복사';
-  copy.setAttribute('aria-label', '복사');
-  copy.addEventListener('click', () => navigator.clipboard.writeText(body.textContent || ''));
+    copy.setAttribute('aria-label', '복사');
+    copy.addEventListener('click', () => navigator.clipboard.writeText(body.textContent || ''));
     btns.appendChild(copy);
+
+    // 해설 (번역 쪽에만)
+    if (isTran) {
+      const explain = document.createElement('button');
+      explain.textContent = '해설';
+      explain.setAttribute('aria-label', '해설');
+      explain.addEventListener('click', async () => {
+        const apiKey = (el.apiKey?.value || '').trim();
+        if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
+        explain.disabled = true; const prev = explain.textContent; explain.textContent = '요청중…';
+        try{
+          const orig = LS.lines[idx].orig || '';
+          const tran = body.textContent || '';
+          const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko');
+          showExplanation(explanation);
+        }catch(err){ console.error('explain error', err); alert('해설 가져오기 실패: ' + (err?.message || String(err))); }
+        finally { explain.disabled = false; explain.textContent = prev; }
+      });
+      btns.appendChild(explain);
+    }
 
     // 재번역 (원문 쪽에만)
     if (!isTran){
@@ -428,6 +471,7 @@
     if (el.stTopPVal) el.stTopPVal.textContent = String(el.stTopP.value);
   }
   if (el.stMaxTok) el.stMaxTok.value = String(st.maxTokens ?? DEFAULTS.maxTokens);
+  if (el.stCustomPrompt) el.stCustomPrompt.value = String(st.customPrompt || '');
 
   if (el.modelBadge) el.modelBadge.textContent = 'model: ' + (st.model || DEFAULTS.model);
 }
@@ -442,7 +486,8 @@
       preserve: el.stPreserve ? !!el.stPreserve.checked : st.preserve,
       temperature: el.stTemp ? Number(el.stTemp.value) : st.temperature,
       topP: el.stTopP ? Number(el.stTopP.value) : st.topP,
-      maxTokens: el.stMaxTok ? Number(el.stMaxTok.value) : st.maxTokens
+      maxTokens: el.stMaxTok ? Number(el.stMaxTok.value) : st.maxTokens,
+      customPrompt: el.stCustomPrompt ? el.stCustomPrompt.value.trim() : (st.customPrompt || '')
     };
     LS.settings = next; loadSettingsToUI();
   }
@@ -459,6 +504,7 @@
   }
 
   function buildPrompt(text, src, tgt) {
+    const st = LS.settings;
     const from = (src === 'auto') ? 'auto-detect' : src;
     const gl = LS.glossary || [];
     let glossLines = '';
@@ -466,9 +512,12 @@
       const lines = gl.map(g => '- "' + g.src + '" -> "' + g.tgt + '"' + (g.whole ? ' (whole word)' : ''));
       glossLines = '\n\nGlossary (terms to enforce):\n' + lines.join('\n');
     }
+    const customPrompt = (st.customPrompt || '').trim();
+    const customPart = customPrompt ? '\n\n' + customPrompt : '';
     return 'You are a professional translation engine. ' +
       'Translate the following text from ' + from + ' to ' + tgt + '. ' +
       styleDirectives(tgt) + glossLines +
+      customPart +
       '\n\nReturn only the translation with no quotes or extra commentary.' +
       '\n\nText:\n' + text;
   }
@@ -695,5 +744,69 @@
     } finally {
       if (el.send) { el.send.disabled = false; el.send.textContent = '번역'; }
     }
+  }
+
+  // 해설 기능
+  async function getExplanation(apiKey, original, translation, targetLang) {
+    const st = LS.settings;
+    const prompt = `You are an expert translator and language teacher. 
+The following sentence has been translated from another language to ${targetLang === 'ko' ? 'Korean' : targetLang === 'en' ? 'English' : 'the target language'}.
+
+Original text: "${original}"
+Translation: "${translation}"
+
+Please provide a detailed explanation:
+1. Is this translation natural and commonly used in real-life situations?
+2. What are the specific usage contexts where this sentence would be used?
+3. Are there any nuances or cultural considerations in the translation?
+4. Would native speakers actually say it this way, and in what situations?
+
+Provide your answer in Korean (한국어).`;
+
+    const body = {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.95,
+        maxOutputTokens: 1024
+      }
+    };
+
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
+                encodeURIComponent(st.model || DEFAULTS.model) +
+                ':generateContent';
+
+    const ac = new AbortController();
+    const id = setTimeout(() => ac.abort(), 15000);
+    let data;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify(body),
+        signal: ac.signal
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        console.error('getExplanation HTTP error', res.status, txt);
+        throw new Error('해설 요청 실패 (' + res.status + ')');
+      }
+      data = await res.json();
+    } catch (err) {
+      if (err.name === 'AbortError') throw new Error('요청 시간이 초과되었습니다.');
+      throw err;
+    } finally {
+      clearTimeout(id);
+    }
+
+    const out = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!out) throw new Error('해설을 받을 수 없습니다.');
+    return out;
+  }
+
+  function showExplanation(text) {
+    if (!el.explainContent) return;
+    el.explainContent.textContent = text;
+    if (el.explainModal) el.explainModal.classList.add('show');
   }
 })();
