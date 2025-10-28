@@ -772,7 +772,7 @@ Provide your answer in Korean (한국어).`;
       generationConfig: {
         temperature: 0.7,
         topP: 0.95,
-        maxOutputTokens: 1024
+        maxOutputTokens: 2048
       }
     };
 
@@ -810,9 +810,16 @@ Provide your answer in Korean (한국어).`;
       throw new Error('안전 필터에 의해 차단됨: ' + data.promptFeedback.blockReason);
     }
     
+    // finishReason 체크
+    const finishReason = data?.candidates?.[0]?.finishReason;
+    if (finishReason === 'MAX_TOKENS') {
+      throw new Error('응답이 너무 길어 최대 토큰 한도에 도달했습니다. 더 짧은 텍스트로 다시 시도하거나 설정에서 최대 토큰을 늘려보세요.');
+    }
+    
     const out = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     if (!out) {
       console.error('응답 데이터 구조:', JSON.stringify(data, null, 2));
+      console.error('finishReason:', finishReason);
       throw new Error('해설을 받을 수 없습니다. (응답이 비어있거나 형식이 다릅니다)');
     }
     return out;
