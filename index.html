@@ -397,6 +397,17 @@
             <div class="label">최대 토큰</div>
             <input id="stMaxTok" type="number" min="128" max="8192" step="64" value="2048" />
           </div>
+          <div>
+            <div class="label">해설용 모델</div>
+            <select id="stExplainModel">
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
+              <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+            </select>
+            <div class="hint">번역 해설에 사용할 모델</div>
+          </div>
           <div style="grid-column:1/-1">
             <div class="label">커스텀 프롬프트 (선택)</div>
             <textarea id="stCustomPrompt" placeholder="예: 문맥에 맞게 자연스럽게, 전문가 수준으로 번역" rows="2" style="width:100%"></textarea>

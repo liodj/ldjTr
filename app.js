@@ -5,6 +5,7 @@
   // === 기본값 ===
   const DEFAULTS = {
     model: 'gemini-2.5-flash',
+    explainModel: 'gemini-1.5-flash',  // 해설용 모델 (리소스 적게 사용)
     temperature: 0.2,
     topP: 0.95,
     maxTokens: 2048,
@@ -24,7 +25,7 @@
     origList: $('#origList'), tranList: $('#tranList'), exportBtn: $('#exportBtn'), clearBtn: $('#clearBtn'), modelBadge: $('#modelBadge'),
     gSrc: $('#gSrc'), gTgt: $('#gTgt'), gWhole: $('#gWhole'), gAdd: $('#gAdd'), gClear: $('#gClear'), gList: $('#gList'), gCount: $('#glossCount'),
     installBtn: $('#installBtn'),
-    stModel: $('#stModel'), stTone: $('#stTone'), stVariety: $('#stVariety'), stPreserve: $('#stPreserve'),
+    stModel: $('#stModel'), stExplainModel: $('#stExplainModel'), stTone: $('#stTone'), stVariety: $('#stVariety'), stPreserve: $('#stPreserve'),
     stTemp: $('#stTemp'), stTopP: $('#stTopP'), stMaxTok: $('#stMaxTok'), stCustomPrompt: $('#stCustomPrompt'),
     stTempVal: $('#stTempVal'), stTopPVal: $('#stTopPVal'),
     btnSaveSettings: $('#btnSaveSettings'),
@@ -295,7 +296,7 @@
       explain.disabled = true; const prev = explain.textContent; explain.textContent = '요청중…';
       try{
         const orig = o.textContent; const tran = t.textContent;
-        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko');
+        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx);
         showExplanation(explanation);
       }catch(err){ console.error('explain error', err); alert('해설 가져오기 실패: ' + (err?.message || String(err))); }
       finally { explain.disabled = false; explain.textContent = prev; }
@@ -375,7 +376,7 @@
         try{
           const orig = LS.lines[idx].orig || '';
           const tran = body.textContent || '';
-          const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko');
+          const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx);
           showExplanation(explanation);
         }catch(err){ console.error('explain error', err); alert('해설 가져오기 실패: ' + (err?.message || String(err))); }
         finally { explain.disabled = false; explain.textContent = prev; }
@@ -462,6 +463,18 @@
   if (el.stVariety)  el.stVariety.value = st.variety || DEFAULTS.variety;
   if (el.stPreserve) el.stPreserve.checked = ('preserve' in st ? !!st.preserve : DEFAULTS.preserve);
 
+  // 해설용 모델 드롭다운
+  if (el.stExplainModel) {
+    const explainV = st.explainModel || DEFAULTS.explainModel;
+    const explainOptValues = Array.from(el.stExplainModel.options).map(o => o.value);
+    if (!explainOptValues.includes(explainV)) {
+      const opt = document.createElement('option');
+      opt.value = explainV; opt.textContent = explainV;
+      el.stExplainModel.appendChild(opt);
+    }
+    el.stExplainModel.value = explainV;
+  }
+
   if (el.stTemp) {
     el.stTemp.value = String(st.temperature ?? DEFAULTS.temperature);
     if (el.stTempVal) el.stTempVal.textContent = String(el.stTemp.value);
@@ -481,6 +494,7 @@
     const st = LS.settings;
     const next = {
       model: (el.stModel && el.stModel.value ? el.stModel.value.trim() : st.model || DEFAULTS.model),
+      explainModel: (el.stExplainModel && el.stExplainModel.value ? el.stExplainModel.value.trim() : st.explainModel || DEFAULTS.explainModel),
       tone: el.stTone ? el.stTone.value : st.tone,
       variety: el.stVariety ? el.stVariety.value : st.variety,
       preserve: el.stPreserve ? !!el.stPreserve.checked : st.preserve,
@@ -747,21 +761,24 @@
   }
 
   // 해설 기능
-  async function getExplanation(apiKey, original, translation, targetLang) {
+  async function getExplanation(apiKey, original, translation, targetLang, lineIndex) {
     const st = LS.settings;
-    const prompt = `You are an expert translator and language teacher. 
-The following sentence has been translated from another language to ${targetLang === 'ko' ? 'Korean' : targetLang === 'en' ? 'English' : 'the target language'}.
-
-Original text: "${original}"
+    
+    // 저장된 해설이 있는지 확인
+    const lines = LS.lines;
+    if (lines[lineIndex] && lines[lineIndex].explain) {
+      return lines[lineIndex].explain;
+    }
+    
+    const prompt = `You are an expert translator.
+Original: "${original}"
 Translation: "${translation}"
 
-Please provide a detailed explanation:
-1. Is this translation natural and commonly used in real-life situations?
-2. What are the specific usage contexts where this sentence would be used?
-3. Are there any nuances or cultural considerations in the translation?
-4. Would native speakers actually say it this way, and in what situations?
+Provide a brief explanation (2-3 sentences):
+1. Is this translation natural and commonly used? In what specific situations would native speakers use this?
+2. Are there any nuances or cultural considerations?
 
-Provide your answer in Korean (한국어).`;
+Keep it concise and in Korean.`;
 
     const body = {
       systemInstruction: {
@@ -776,8 +793,9 @@ Provide your answer in Korean (한국어).`;
       }
     };
 
+    const explainModel = st.explainModel || DEFAULTS.explainModel;
     const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
-                encodeURIComponent(st.model || DEFAULTS.model) +
+                encodeURIComponent(explainModel) +
                 ':generateContent';
 
     const ac = new AbortController();
@@ -796,8 +814,6 @@ Provide your answer in Korean (한국어).`;
         throw new Error('해설 요청 실패 (' + res.status + ')');
       }
       data = await res.json();
-      // 디버깅을 위한 응답 로그
-      console.log('Gemini API 응답:', data);
     } catch (err) {
       if (err.name === 'AbortError') throw new Error('요청 시간이 초과되었습니다.');
       throw err;
@@ -822,11 +838,23 @@ Provide your answer in Korean (한국어).`;
       console.error('finishReason:', finishReason);
       throw new Error('해설을 받을 수 없습니다. (응답이 비어있거나 형식이 다릅니다)');
     }
+    
+    // 해설을 lines 배열에 저장
+    if (lineIndex !== undefined && lineIndex >= 0) {
+      updateLines(lines => {
+        if (lines[lineIndex]) {
+          lines[lineIndex].explain = out;
+        }
+        return lines;
+      }, { render: false });
+    }
+    
     return out;
   }
 
   function showExplanation(text) {
     if (!el.explainContent) return;
+    // 마크다운이나 줄바꿈을 보존하면서 표시
     el.explainContent.textContent = text;
     if (el.explainModal) el.explainModal.classList.add('show');
   }
