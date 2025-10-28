@@ -764,6 +764,10 @@ Please provide a detailed explanation:
 Provide your answer in Korean (한국어).`;
 
     const body = {
+      systemInstruction: {
+        role: 'system',
+        parts: [{ text: 'You are an expert translator and language teacher. Provide detailed explanations about translations, their naturalness, usage contexts, and cultural nuances.' }]
+      },
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.7,
@@ -792,6 +796,8 @@ Provide your answer in Korean (한국어).`;
         throw new Error('해설 요청 실패 (' + res.status + ')');
       }
       data = await res.json();
+      // 디버깅을 위한 응답 로그
+      console.log('Gemini API 응답:', data);
     } catch (err) {
       if (err.name === 'AbortError') throw new Error('요청 시간이 초과되었습니다.');
       throw err;
@@ -799,8 +805,16 @@ Provide your answer in Korean (한국어).`;
       clearTimeout(id);
     }
 
+    // 안전한 응답 파싱
+    if (data?.promptFeedback?.blockReason) {
+      throw new Error('안전 필터에 의해 차단됨: ' + data.promptFeedback.blockReason);
+    }
+    
     const out = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (!out) throw new Error('해설을 받을 수 없습니다.');
+    if (!out) {
+      console.error('응답 데이터 구조:', JSON.stringify(data, null, 2));
+      throw new Error('해설을 받을 수 없습니다. (응답이 비어있거나 형식이 다릅니다)');
+    }
     return out;
   }
 
