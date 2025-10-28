@@ -280,8 +280,8 @@
     if (selected.has(idx)) wrap.classList.add('selected');
 
     wrap.addEventListener('click', (e) => {
-        // 툴바 버튼 또는 편집 가능 영역 클릭 시에는 선택 토글 방지
-        if (e.target.closest('.toolbar') || e.target.closest('.editable')) return;
+        // 툴바 버튼 클릭 시에는 선택 토글 방지
+        if (e.target.closest('.toolbar')) return;
         toggleSelection(idx);
     });
 
@@ -369,7 +369,7 @@
     if (selected.has(idx)) div.classList.add('selected');
 
     div.addEventListener('click', (e) => {
-        if (e.target.closest('.toolbar') || e.target.closest('.editable')) return;
+        if (e.target.closest('.toolbar')) return;
         toggleSelection(idx);
     });
 
