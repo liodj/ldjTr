@@ -109,7 +109,14 @@
     el.toggleKey.textContent = (el.apiKey.type === 'password') ? '표시' : '숨김';
   });
   if (el.saveKey) el.saveKey.addEventListener('click', () => { LS.k = (el.apiKey.value || '').trim(); keyMsg('저장됨'); });
-  if (el.testKey) el.testKey.addEventListener('click', async () => { const ok = await testKey(); keyMsg(ok ? '키 정상' : '키 오류', ok ? '' : 'error'); });
+  if (el.testKey) {
+    el.testKey.addEventListener('click', () => handleApiAction(el.testKey, async () => {
+      const apiKey = (el.apiKey.value || '').trim();
+      await translateOnce(apiKey, 'ping', 'en', 'ko');
+      keyMsg('키 정상', 'success'); // 성공 메시지 표시
+    }, '테스트 중…'));
+  }
+
   if (el.src) el.src.addEventListener('change', () => { LS.src = el.src.value; });
   if (el.tgt) el.tgt.addEventListener('change', () => { LS.tgt = el.tgt.value; });
 
@@ -290,49 +297,40 @@
                     (o.textContent + '\n' + t.textContent);
         navigator.clipboard.writeText(txt || '');
     });
-    const explain = document.createElement('button'); explain.textContent='해설'; explain.setAttribute('aria-label', '해설');
-    explain.addEventListener('click', async ()=> {
+    const explain = document.createElement('button');
+    explain.textContent = '해설';
+    explain.setAttribute('aria-label', '해설');
+    explain.addEventListener('click', () => handleApiAction(explain, async () => {
       const apiKey = (el.apiKey?.value || '').trim();
-      if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
-      explain.disabled = true; const prev = explain.textContent; explain.textContent = '요청중…';
-      try{
-        const orig = o.textContent; const tran = t.textContent;
-        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, false);
-        showExplanation(explanation);
-      }catch(err){ console.error('explain error', err); alert('해설 가져오기 실패: ' + (err?.message || String(err))); }
-      finally { explain.disabled = false; explain.textContent = prev; }
-    });
-    
+      const orig = o.textContent;
+      const tran = t.textContent;
+      const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, false);
+      showExplanation(explanation);
+    }));
+
     // 해설 새로고침 버튼
-    const explainRefresh = document.createElement('button'); 
-    explainRefresh.textContent='🔄'; 
-    explainRefresh.title='해설 새로고침'; 
+    const explainRefresh = document.createElement('button');
+    explainRefresh.textContent = '🔄';
+    explainRefresh.title = '해설 새로고침';
     explainRefresh.setAttribute('aria-label', '해설 새로고침');
     explainRefresh.style.fontSize = '14px';
-    explainRefresh.addEventListener('click', async ()=> {
+    explainRefresh.addEventListener('click', () => handleApiAction(explainRefresh, async () => {
       const apiKey = (el.apiKey?.value || '').trim();
-      if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
-      explainRefresh.disabled = true; const prev = explainRefresh.textContent; explainRefresh.textContent = '⏳';
-      try{
-        const orig = o.textContent; const tran = t.textContent;
-        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, true);
-        showExplanation(explanation);
-      }catch(err){ console.error('explain refresh error', err); alert('해설 새로고침 실패: ' + (err?.message || String(err))); }
-      finally { explainRefresh.disabled = false; explainRefresh.textContent = prev; }
-    });
-    
-    const rerun = document.createElement('button'); rerun.textContent='재번역'; rerun.setAttribute('aria-label', '재번역');
-    rerun.addEventListener('click', async ()=> {
+      const orig = o.textContent;
+      const tran = t.textContent;
+      const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, true);
+      showExplanation(explanation);
+    }, '⏳'));
+
+    const rerun = document.createElement('button');
+    rerun.textContent = '재번역';
+    rerun.setAttribute('aria-label', '재번역');
+    rerun.addEventListener('click', () => handleApiAction(rerun, async () => {
       const apiKey = (el.apiKey?.value || '').trim();
-      if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
-      rerun.disabled = true; const prev = rerun.textContent; rerun.textContent = '번역중…';
-      try{
-      const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?el.src.value:'auto'), (el.tgt?el.tgt.value:'ko'));
+      const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?.value || 'auto'), (el.tgt?.value || 'ko'));
       const final = applyDeterministicGlossary(raw, LS.glossary);
       updateLines(lines => { lines[idx].tran = final; return lines; });
-      }catch(err){ console.error('retranslate error', err); alert('재번역 실패: ' + (err?.message || String(err))); }
-      finally { rerun.disabled = false; rerun.textContent = prev; }
-    });
+    }, '번역중…'));
     tools.appendChild(cb); tools.appendChild(copy); tools.appendChild(explain); tools.appendChild(explainRefresh); tools.appendChild(rerun);
 
     text.appendChild(o); text.appendChild(t); text.appendChild(tools);
@@ -389,59 +387,44 @@
       const explain = document.createElement('button');
       explain.textContent = '해설';
       explain.setAttribute('aria-label', '해설');
-      explain.addEventListener('click', async () => {
+      explain.addEventListener('click', () => handleApiAction(explain, async () => {
         const apiKey = (el.apiKey?.value || '').trim();
-        if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
-        explain.disabled = true; const prev = explain.textContent; explain.textContent = '요청중…';
-        try{
-          const orig = LS.lines[idx].orig || '';
-          const tran = body.textContent || '';
-          const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, false);
-          showExplanation(explanation);
-        }catch(err){ console.error('explain error', err); alert('해설 가져오기 실패: ' + (err?.message || String(err))); }
-        finally { explain.disabled = false; explain.textContent = prev; }
-      });
-      
+        const orig = LS.lines[idx].orig || '';
+        const tran = body.textContent || '';
+        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, false);
+        showExplanation(explanation);
+      }));
+
       // 해설 새로고침 버튼
       const explainRefresh = document.createElement('button');
       explainRefresh.textContent = '🔄';
       explainRefresh.title = '해설 새로고침';
       explainRefresh.setAttribute('aria-label', '해설 새로고침');
       explainRefresh.style.fontSize = '14px';
-      explainRefresh.addEventListener('click', async () => {
+      explainRefresh.addEventListener('click', () => handleApiAction(explainRefresh, async () => {
         const apiKey = (el.apiKey?.value || '').trim();
-        if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
-        explainRefresh.disabled = true; const prev = explainRefresh.textContent; explainRefresh.textContent = '⏳';
-        try{
-          const orig = LS.lines[idx].orig || '';
-          const tran = body.textContent || '';
-          const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, true);
-          showExplanation(explanation);
-        }catch(err){ console.error('explain refresh error', err); alert('해설 새로고침 실패: ' + (err?.message || String(err))); }
-        finally { explainRefresh.disabled = false; explainRefresh.textContent = prev; }
-      });
-      
+        const orig = LS.lines[idx].orig || '';
+        const tran = body.textContent || '';
+        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, true);
+        showExplanation(explanation);
+      }, '⏳'));
+
       btns.appendChild(explain);
       btns.appendChild(explainRefresh);
     }
 
     // 재번역 (원문 쪽에만)
     if (!isTran){
-    const rerun = document.createElement('button');
-    rerun.textContent = '재번역'; rerun.setAttribute('aria-label', '재번역');
-    rerun.addEventListener('click', async () => {
-    const apiKey = (el.apiKey?.value || '').trim();
-    if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
-    rerun.disabled = true; const prev = rerun.textContent; rerun.textContent = '번역중…';
-    // 최신 원문으로 재번역
-    try{
-      const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?el.src.value:'auto'), (el.tgt?el.tgt.value:'ko'));
-      const final = applyDeterministicGlossary(raw, LS.glossary);
-      updateLines(lines => { lines[idx].tran = final; return lines; });
-    }catch(err){ console.error('retranslate error', err); alert('재번역 실패: ' + (err?.message || String(err))); }
-    finally { rerun.disabled = false; rerun.textContent = prev; }
-    });
-        btns.appendChild(rerun);
+      const rerun = document.createElement('button');
+      rerun.textContent = '재번역';
+      rerun.setAttribute('aria-label', '재번역');
+      rerun.addEventListener('click', () => handleApiAction(rerun, async () => {
+        const apiKey = (el.apiKey?.value || '').trim();
+        const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?.value || 'auto'), (el.tgt?.value || 'ko'));
+        const final = applyDeterministicGlossary(raw, LS.glossary);
+        updateLines(lines => { lines[idx].tran = final; return lines; });
+      }, '번역중…'));
+      btns.appendChild(rerun);
     }
 
     div.appendChild(num);
@@ -779,28 +762,18 @@
     return out;
   }
 
-  async function testKey() {
-    try { return !!(await translateOnce((el.apiKey.value || '').trim(), 'ping', 'en', 'ko')); }
-    catch { return false; }
-  }
+  function send() {
+    if (!el.send) return;
+    handleApiAction(el.send, async () => {
+      const apiKey = (el.apiKey.value || '').trim();
+      const text = (el.note.value || '').trim();
+      if (!text) return;
 
-  async function send() {
-    const apiKey = (el.apiKey.value || '').trim();
-    const text = (el.note.value || '').trim();
-    if (!apiKey) { keyMsg('API 키를 먼저 저장하세요', 'error'); return; }
-    if (!text) return;
-    if (el.send) { el.send.disabled = true; el.send.textContent = '번역 중…'; }
-    try {
-      const raw = await translateOnce(apiKey, text, (el.src ? el.src.value : 'auto'), (el.tgt ? el.tgt.value : 'ko'));
+      const raw = await translateOnce(apiKey, text, (el.src?.value || 'auto'), (el.tgt?.value || 'ko'));
       const final = applyDeterministicGlossary(raw, LS.glossary);
-      const lines = LS.lines.concat([{ orig: text, tran: final, src: (el.src ? el.src.value : 'auto'), tgt: (el.tgt ? el.tgt.value : 'ko') }]);
-      LS.lines = lines; renderLines(lines);
+      updateLines(lines => lines.concat([{ orig: text, tran: final, src: (el.src?.value || 'auto'), tgt: (el.tgt?.value || 'ko') }]));
       el.note.value = '';
-    } catch (err) {
-      alert('번역 실패: ' + (err?.message || String(err)));
-    } finally {
-      if (el.send) { el.send.disabled = false; el.send.textContent = '번역'; }
-    }
+    }, '번역 중…');
   }
 
   // 해설 기능
@@ -908,5 +881,30 @@ Use line breaks between sections to improve readability. Answer can be somewhat 
     // 마크다운이나 줄바꿈을 보존하면서 표시
     el.explainContent.textContent = text;
     if (el.explainModal) el.explainModal.classList.add('show');
+  }
+
+  // API 호출 버튼의 반복 로직을 처리하는 고차 함수
+  async function handleApiAction(button, actionFn, loadingText = '요청중…') {
+    const apiKey = (el.apiKey?.value || '').trim();
+    if (!apiKey) {
+      alert('API 키를 먼저 저장하세요');
+      keyMsg('API 키를 먼저 저장하세요', 'error'); // 더 잘 보이는 피드백
+      return;
+    }
+
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = loadingText;
+
+    try {
+      await actionFn();
+    } catch (err) {
+      console.error('API Action Error:', err);
+      // 타임아웃, API 차단 등 구체적인 오류 메시지를 alert로 보여줌
+      alert('작업 실패: ' + (err?.message || String(err)));
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
   }
 })();
