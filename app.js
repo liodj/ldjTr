@@ -296,11 +296,30 @@
       explain.disabled = true; const prev = explain.textContent; explain.textContent = '요청중…';
       try{
         const orig = o.textContent; const tran = t.textContent;
-        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx);
+        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, false);
         showExplanation(explanation);
       }catch(err){ console.error('explain error', err); alert('해설 가져오기 실패: ' + (err?.message || String(err))); }
       finally { explain.disabled = false; explain.textContent = prev; }
     });
+    
+    // 해설 새로고침 버튼
+    const explainRefresh = document.createElement('button'); 
+    explainRefresh.textContent='🔄'; 
+    explainRefresh.title='해설 새로고침'; 
+    explainRefresh.setAttribute('aria-label', '해설 새로고침');
+    explainRefresh.style.fontSize = '14px';
+    explainRefresh.addEventListener('click', async ()=> {
+      const apiKey = (el.apiKey?.value || '').trim();
+      if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
+      explainRefresh.disabled = true; const prev = explainRefresh.textContent; explainRefresh.textContent = '⏳';
+      try{
+        const orig = o.textContent; const tran = t.textContent;
+        const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, true);
+        showExplanation(explanation);
+      }catch(err){ console.error('explain refresh error', err); alert('해설 새로고침 실패: ' + (err?.message || String(err))); }
+      finally { explainRefresh.disabled = false; explainRefresh.textContent = prev; }
+    });
+    
     const rerun = document.createElement('button'); rerun.textContent='재번역'; rerun.setAttribute('aria-label', '재번역');
     rerun.addEventListener('click', async ()=> {
       const apiKey = (el.apiKey?.value || '').trim();
@@ -313,7 +332,7 @@
       }catch(err){ console.error('retranslate error', err); alert('재번역 실패: ' + (err?.message || String(err))); }
       finally { rerun.disabled = false; rerun.textContent = prev; }
     });
-    tools.appendChild(cb); tools.appendChild(copy); tools.appendChild(explain); tools.appendChild(rerun);
+    tools.appendChild(cb); tools.appendChild(copy); tools.appendChild(explain); tools.appendChild(explainRefresh); tools.appendChild(rerun);
 
     text.appendChild(o); text.appendChild(t); text.appendChild(tools);
     wrap.appendChild(id); wrap.appendChild(text);
@@ -376,12 +395,33 @@
         try{
           const orig = LS.lines[idx].orig || '';
           const tran = body.textContent || '';
-          const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx);
+          const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, false);
           showExplanation(explanation);
         }catch(err){ console.error('explain error', err); alert('해설 가져오기 실패: ' + (err?.message || String(err))); }
         finally { explain.disabled = false; explain.textContent = prev; }
       });
+      
+      // 해설 새로고침 버튼
+      const explainRefresh = document.createElement('button');
+      explainRefresh.textContent = '🔄';
+      explainRefresh.title = '해설 새로고침';
+      explainRefresh.setAttribute('aria-label', '해설 새로고침');
+      explainRefresh.style.fontSize = '14px';
+      explainRefresh.addEventListener('click', async () => {
+        const apiKey = (el.apiKey?.value || '').trim();
+        if (!apiKey) { alert('API 키를 먼저 저장하세요'); return; }
+        explainRefresh.disabled = true; const prev = explainRefresh.textContent; explainRefresh.textContent = '⏳';
+        try{
+          const orig = LS.lines[idx].orig || '';
+          const tran = body.textContent || '';
+          const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, true);
+          showExplanation(explanation);
+        }catch(err){ console.error('explain refresh error', err); alert('해설 새로고침 실패: ' + (err?.message || String(err))); }
+        finally { explainRefresh.disabled = false; explainRefresh.textContent = prev; }
+      });
+      
       btns.appendChild(explain);
+      btns.appendChild(explainRefresh);
     }
 
     // 재번역 (원문 쪽에만)
@@ -761,24 +801,32 @@
   }
 
   // 해설 기능
-  async function getExplanation(apiKey, original, translation, targetLang, lineIndex) {
+  async function getExplanation(apiKey, original, translation, targetLang, lineIndex, forceRefresh = false) {
     const st = LS.settings;
     
-    // 저장된 해설이 있는지 확인
+    // 저장된 해설이 있는지 확인 (forceRefresh가 false일 때만)
     const lines = LS.lines;
-    if (lines[lineIndex] && lines[lineIndex].explain) {
+    if (!forceRefresh && lines[lineIndex] && lines[lineIndex].explain) {
       return lines[lineIndex].explain;
     }
     
-    const prompt = `You are an expert translator.
+    const prompt = `You are an expert translator and language teacher.
+
 Original: "${original}"
 Translation: "${translation}"
 
-Provide a brief explanation (2-3 sentences):
-1. Is this translation natural and commonly used? In what specific situations would native speakers use this?
-2. Are there any nuances or cultural considerations?
+Please provide a detailed explanation in Korean with line breaks for readability:
 
-Keep it concise and in Korean.`;
+1. 여러 표현 방식 비교: 
+   - 이 번역이 자연스러운지, 다른 방식으로 표현할 수 있는지 비교해주세요.
+   - 예를 들어, 더 구어적/격식있는 표현, 더 간결한/상세한 표현 등 다른 옵션을 제시해주세요.
+
+2. 원어민 사용 판단 및 예시:
+   - 이 번역을 원어민이 실제로 쓸 것 같은가요, 아니면 다른 표현을 쓸 것 같나요?
+   - 더 자연스러운 대안 표현을 예시 문장으로 보여주세요.
+   - 각 표현의 차이점과 사용 맥락을 설명해주세요.
+
+Use line breaks between sections to improve readability. Answer can be somewhat longer if needed to be thorough.`;
 
     const body = {
       systemInstruction: {
