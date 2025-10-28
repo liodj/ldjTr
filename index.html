@@ -100,8 +100,8 @@
     }
 
     /* 선택된 아이템 표시 */
-    .item.selected, .line.selected {
-      background: rgba(105, 177, 255, 0.1) !important;
+    .list .item.selected, #resSplit .line.selected {
+      background-color: rgba(105, 177, 255, 0.1);
     }
 
     /* 설정 모달 */
@@ -179,7 +179,7 @@
     /* 좌우 2열(split) 모드 스타일 개선 */
     #resSplit.list {
         gap: 0;
-        padding: 12px;
+        padding: 0 12px;
     }
     #resSplit.list > div:first-child {
         border-right: 1px solid var(--line);

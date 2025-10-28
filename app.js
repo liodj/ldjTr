@@ -280,8 +280,8 @@
     if (selected.has(idx)) wrap.classList.add('selected');
 
     wrap.addEventListener('click', (e) => {
-        // 툴바 버튼 클릭 시에는 선택 토글 방지
-        if (e.target.closest('.toolbar')) return;
+        // 툴바 버튼 또는 편집 가능 영역 클릭 시에는 선택 토글 방지
+        if (e.target.closest('.toolbar') || e.target.closest('.editable')) return;
         toggleSelection(idx);
     });
 
@@ -482,7 +482,7 @@
   }
 
   function escapeHTML(s) {
-    return String(s).replace(/[&<>""]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+    return String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
   }
 
   function loadSettingsToUI() {
@@ -583,12 +583,12 @@
 
   function applyDeterministicGlossary(out, glossary) {
     if (!glossary || !glossary.length) return out;
-    const esc = (s) => String(s).replace(/[.*+?^${}()|[\\]/g, '\\$&');
+    const esc = (s) => String(s).replace(/[.*+?^${}()|[\]/g, '\$&');
     let t = String(out);
     glossary.forEach((item) => {
       const escSrc = esc(item.src);
       const re = item.whole
-        ? new RegExp('(^|\\b)' + escSrc + '(?=\\b|$)', 'g')
+        ? new RegExp('(^|\b)' + escSrc + '(?=\b|$)', 'g')
         : new RegExp(escSrc, 'g');
       t = t.replace(re, (m, p1) => (item.whole && p1 ? p1 : '') + String(item.tgt));
     });
