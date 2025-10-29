@@ -5,210 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>번역 노트 (Gemini 개인키 · PWA · 용어집 · 설정)</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0b0f14" />
-  <style>
-    :root { --bg:#0b0f14; --fg:#e6eef8; --muted:#9db0c6; --card:#121821; --accent:#69b1ff; --danger:#ff6b6b; --line:#1c2738; }
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,Apple Color Emoji,Arial,sans-serif}
-    header{position:sticky;top:0;background:linear-gradient(180deg,#0b0f14 70%,transparent);padding:12px 16px 10px;border-bottom:1px solid #182131;z-index:5}
-    h1{font-size:18px;margin:0 0 6px}
-    .wrap{max-width:980px;margin:0 auto;padding:12px 16px 120px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
-    input,select,button,textarea{background:#0e141d;color:var(--fg);border:1px solid #263347;border-radius:12px;padding:10px 12px;font-size:15px}
-    input::placeholder,textarea::placeholder{color:#6e8096}
-    textarea{min-height:64px}
-    button{cursor:pointer}
-    button.primary{background:var(--accent);color:#001226;border-color:#2a5a8c}
-    button.ghost{background:transparent}
-    .hint{color:var(--muted);font-size:12px}
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media (min-width:900px){ .grid{grid-template-columns:1.1fr 1fr} }
-    .label{font-size:12px;color:#8ea5bd}
-    .orig,.tran{white-space:pre-wrap;word-break:break-word}
-    .toolbar{display:flex;gap:8px;align-items:center}
-    .spacer{flex:1}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a3b55;color:#9db0c6;font-size:12px}
-    .error{color:var(--danger)}
-    details > summary{cursor:pointer;list-style:none}
-    details > summary::-webkit-details-marker{display:none}
-    .pill{display:inline-flex;align-items:center;gap:6px;background:#0f1825;border:1px solid #22324b;padding:4px 8px;border-radius:999px}
-    .pill b{color:#b7c8dc}
-    /* 버튼/폼 오버플로우 방지 */
-    /* 레이아웃 튜닝 */
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .row > *{min-height:40px}
-    .btn-group{display:flex;gap:8px;flex-wrap:wrap}
-    textarea{min-height:64px}
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media (min-width:900px){ .grid{grid-template-columns:1.1fr 1fr} }
-
-    /* 공통: 줄바꿈 허용 + 버티기 */
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-
-    /* 키 입력칸은 가로를 가져가고, 버튼은 고정폭으로 유지 */
-    .key-field{flex:1 1 360px; min-width:260px; position:relative; z-index:0;}
-    .btn-group{flex:0 0 auto; display:flex; gap:8px; flex-wrap:wrap; position:relative; z-index:3;}
-
-    /* 요소 자체 크기/계산 안정화 */
-    input,select,textarea,button{box-sizing:border-box}
-    .key-field input{width:100%; display:block; position:relative; z-index:0;}
-    /* 입력영역을 flex 행 밖으로 한 줄 전부 차지 */
-    .note-wrap{flex:1 0 100%; width:100%}
-    #noteInput{width:100%; display:block; min-height:64px}
-    /* 결과 섹션 헤더 */
-    .result-head{align-items:center}
-
-    /* compact line for split view */
-    .badge{padding:1px 6px; font-size:11px}
-    .toolbar button{padding:6px 8px}
-
-    /* 한 틀 안에 얇은 구분선으로 나누기 (pair view) */
-    .list{
-      border:1px solid var(--line);
-      border-radius:12px;
-      overflow:hidden;
-      background:#0f1621;
-    }
-    .list .item{
-      display:grid;
-      grid-template-columns:auto 1fr;
-      gap:10px;
-      padding:6px 10px;
-      align-items:start;
-      border-top:1px solid #1b2536;
-      cursor:pointer;
-    }
-    .list .item:first-child{ border-top:none }
-    .idx{
-      min-width:28px; text-align:center;
-      font-size:12px; color:#9db0c6; padding-top:2px;
-    }
-    .text .orig{ color:#8ea5bd; font-size:13px; line-height:1.4; margin-bottom:2px }
-    .text .tran{ line-height:1.5 }
-
-    /* 포커스 표시가 이웃을 덮지 않도록(시인성 유지) */
-    input:focus-visible, textarea:focus-visible, select:focus-visible{
-      outline:2px solid var(--accent);
-      outline-offset:2px;   /* 바깥으로 2px */
-    }
-
-    /* 편집 가능 표시 */
-    .editable{outline:none}
-    .editable[contenteditable="true"]:focus{
-      box-shadow:0 0 0 2px rgba(105,177,255,.35) inset;border-radius:6px
-    }
-
-    /* 선택된 아이템 표시 */
-    .list .item.selected, #resSplit.list .line.selected {
-      background-color: rgba(105, 177, 255, 0.1);
-    }
-
-    /* 설정 모달 */
-    .overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);z-index:30}
-    .overlay.show{display:flex}
-    .modal{width:min(680px,92vw);background:#121821;border:1px solid #1c2738;border-radius:16px;padding:14px}
-    .modal h2{margin:0 0 8px;font-size:18px}
-    .modal .grid2{display:grid;grid-template-columns:1fr;gap:10px}
-    @media (min-width:680px){ .modal .grid2{grid-template-columns:1fr 1fr} }
-    .range-row{display:flex;align-items:center;gap:10px}
-    .range-row input[type=range]{flex:1}
-
-    /* 탭 스타일 */
-    .tab-nav{
-      display:flex;
-      gap:2px;
-      margin-bottom:16px;
-      background:#0f1621;
-      border-radius:12px;
-      padding:4px;
-      border:1px solid var(--line);
-    }
-    .tab-btn{
-      flex:1;
-      padding:10px 16px;
-      background:transparent;
-      color:var(--muted);
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-      font-size:14px;
-      font-weight:500;
-      transition:all 0.2s ease;
-      position:relative;
-    }
-    .tab-btn:hover{
-      background:#1a2332;
-      color:var(--fg);
-    }
-    .tab-btn.active{
-      background:var(--accent);
-      color:#001226;
-      box-shadow:0 2px 8px rgba(105,177,255,0.3);
-    }
-    .tab-content{
-      display:none;
-    }
-    .tab-content.active{
-      display:block;
-    }
-
-    /* 모바일 탭 반응형 */
-    @media (max-width:768px){
-      .tab-nav{
-        flex-wrap:wrap;
-        gap:4px;
-      }
-      .tab-btn{
-        flex:1 1 calc(50% - 2px);
-        min-width:calc(50% - 2px);
-        padding:8px 12px;
-        font-size:13px;
-      }
-    }
-
-    /* 탭 콘텐츠 애니메이션 */
-    .tab-content{
-      animation:fadeIn 0.3s ease-in-out;
-    }
-    @keyframes fadeIn{
-      from{opacity:0;transform:translateY(8px)}
-      to{opacity:1;transform:translateY(0)}
-    }
-
-    /* 좌우 2열(split) 모드 스타일 개선 */
-    #resSplit.list {
-        gap: 0;
-        padding: 0 12px;
-    }
-    #resSplit.list > div:first-child {
-        border-right: 1px solid var(--line);
-        padding-right: 12px;
-    }
-    #resSplit.list > div {
-        padding-left: 12px;
-    }
-    #resSplit.list .line {
-        border: none;
-        background: transparent;
-        border-top: 1px solid #1b2536;
-        border-radius: 0;
-        padding: 10px 0;
-    }
-    #resSplit.list .stack > .line:first-child {
-        border-top: none;
-    }
-    .line {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        gap: 8px;
-        align-items: start;
-        padding: 6px 8px;
-        cursor: pointer;
-    }
-
-
-  </style>
+  <meta name="theme-color" content="#0b0f14" />  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
@@ -473,6 +270,34 @@
   </div>
 
   <script type="module" src="./app.js"></script>
+
+  <!-- Templates for list items -->
+  <template id="pair-item-template">
+    <div class="item">
+      <div class="idx"></div>
+      <div class="text">
+        <div class="orig editable" contenteditable="true"></div>
+        <div class="tran editable" contenteditable="true"></div>
+        <div class="toolbar">
+          <button class="copy-btn" aria-label="복사">복사</button>
+          <button class="explain-btn" aria-label="해설">해설</button>
+          <button class="explain-refresh-btn" title="해설 새로고침" aria-label="해설 새로고침" style="font-size: 14px;">🔄</button>
+          <button class="rerun-btn" aria-label="재번역">재번역</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="line-item-template">
+    <div class="line">
+      <div class="badge"></div>
+      <div class="editable" contenteditable="true"></div>
+      <div class="toolbar">
+        <button class="copy-btn" aria-label="복사">복사</button>
+        <!-- Explain and Rerun buttons will be added dynamically -->
+      </div>
+    </div>
+  </template>
 
 </body>
 </html>
