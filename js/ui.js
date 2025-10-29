@@ -1,35 +1,38 @@
+// js/ui.js
 'use strict';
 
 import { DEFAULTS } from './config.js';
-import { LS, selected } from './store.js';
+import { LS, selected, updateLines } from './store.js';
 import { getExplanation, translateOnce, applyDeterministicGlossary } from './api.js';
 
 // === 셀렉터 ===
 export const $ = (s) => document.querySelector(s);
 export const el = {
-  apiKey: $("#apiKey"), keyMsg: $("#keyMsg"), saveKey: $("#saveKey"), toggleKey: $("#toggleKey"), testKey: $("#testKey"),
-  src: $("#srcLang"), tgt: $("#tgtLang"), note: $("#noteInput"), send: $("#sendBtn"),
-  origList: $("#origList"), tranList: $("#tranList"), exportBtn: $("#exportBtn"), clearBtn: $("#clearBtn"), modelBadge: $("#modelBadge"),
-  gSrc: $("#gSrc"), gTgt: $("#gTgt"), gWhole: $("#gWhole"), gAdd: $("#gAdd"), gClear: $("#gClear"), gList: $("#gList"), gCount: $("#glossCount"),
-  installBtn: $("#installBtn"),
-  stModel: $("#stModel"), stExplainModel: $("#stExplainModel"), stTone: $("#stTone"), stVariety: $("#stVariety"), stPreserve: $("#stPreserve"),
-  stTemp: $("#stTemp"), stTopP: $("#stTopP"), stMaxTok: $("#stMaxTok"), stExplainMaxTok: $("#stExplainMaxTok"), stCustomPrompt: $("#stCustomPrompt"),
-  stTempVal: $("#stTempVal"), stTopPVal: $("#stTopPVal"),
-  btnSaveSettings: $("#btnSaveSettings"),
-  explainModal: $("#explainModal"), explainContent: $("#explainContent"), explainClose: $("#explainClose"),
-  layoutMode: $("#layoutMode"),
-  resSplit: $("#resSplit"),
-  resPair: $("#resPair"),
-  pairList: $("#pairList"),
-  copyMode: $("#copyMode"),
-  btnCopySel: $("#btnCopySel"),
-  btnDeleteSel: $("#btnDeleteSel"),
-  btnSaveNote: $("#btnSaveNote"),
-  btnLoadNote: $("#btnLoadNote"),
-  selToggle: $("#selToggle"),
+  apiKey: $('#apiKey'), keyMsg: $('#keyMsg'), saveKey: $('#saveKey'), toggleKey: $('#toggleKey'), testKey: $('#testKey'),
+  src: $('#srcLang'), tgt: $('#tgtLang'), note: $('#noteInput'), send: $('#sendBtn'),
+  origList: $('#origList'), tranList: $('#tranList'), exportBtn: $('#exportBtn'), clearBtn: $('#clearBtn'), modelBadge: $('#modelBadge'),
+  gSrc: $('#gSrc'), gTgt: $('#gTgt'), gWhole: $('#gWhole'), gAdd: $('#gAdd'), gClear: $('#gClear'), gList: $('#gList'), gCount: $('#glossCount'),
+  installBtn: $('#installBtn'),
+  stModel: $('#stModel'), stExplainModel: $('#stExplainModel'), stTone: $('#stTone'), stVariety: $('#stVariety'), stPreserve: $('#stPreserve'),
+  stTemp: $('#stTemp'), stTopP: $('#stTopP'), stMaxTok: $('#stMaxTok'), stExplainMaxTok: $('#stExplainMaxTok'), stCustomPrompt: $('#stCustomPrompt'),
+  stTempVal: $('#stTempVal'), stTopPVal: $('#stTopPVal'),
+  btnSaveSettings: $('#btnSaveSettings'),
+  explainModal: $('#explainModal'), explainContent: $('#explainContent'), explainClose: $('#explainClose'),
+  layoutMode: $('#layoutMode'),
+  resSplit: $('#resSplit'),
+  resPair: $('#resPair'),
+  pairList: $('#pairList'),
+  copyMode: $('#copyMode'),
+  btnCopySel: $('#btnCopySel'),
+  btnDeleteSel: $('#btnDeleteSel'),
+  btnSaveNote: $('#btnSaveNote'),
+  btnLoadNote: $('#btnLoadNote'),
+  selToggle: $('#selToggle'),
   // 탭 관련 요소들
   tabBtns: document.querySelectorAll('.tab-btn'),
   tabContents: document.querySelectorAll('.tab-content'),
+  pairItemTemplate: $('#pair-item-template'),
+  lineItemTemplate: $('#line-item-template'),
 };
 
 // === UI 함수들 ===
@@ -125,9 +128,10 @@ function pairItemEl(l, idx){
     const apiKey = (el.apiKey?.value || '').trim();
     const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?.value || 'auto'), (el.tgt?.value || 'ko'));
     const final = applyDeterministicGlossary(raw, LS.glossary);
-    const newLines = LS.lines;
-    newLines[idx].tran = final;
-    LS.lines = newLines;
+    const newLines = updateLines(lines => {
+      lines[idx].tran = final;
+      return lines;
+    }, { render: false });
     renderLines(newLines);
   }, '번역중…'));
 
@@ -197,9 +201,10 @@ function lineEl(line, idx, isTran){
       const apiKey = (el.apiKey?.value || '').trim();
       const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?.value || 'auto'), (el.tgt?.value || 'ko'));
       const final = applyDeterministicGlossary(raw, LS.glossary);
-      const newLines = LS.lines;
-      newLines[idx].tran = final;
-      LS.lines = newLines;
+      const newLines = updateLines(lines => {
+        lines[idx].tran = final;
+        return lines;
+      }, { render: false });
       renderLines(newLines);
     }, '번역중…'));
     toolbar.appendChild(rerun);
@@ -238,7 +243,7 @@ export function renderGlossary() {
 }
 
 function escapeHTML(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
 }
 
 export function loadSettingsToUI() {
