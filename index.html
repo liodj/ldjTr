@@ -274,7 +274,10 @@
   <!-- Templates for list items -->
   <template id="pair-item-template">
     <div class="item">
-      <div class="idx"></div>
+      <label class="sel-wrap">
+        <input type="checkbox" class="sel-cb">
+        <div class="idx"></div>
+      </label>
       <div class="text">
         <div class="orig editable" contenteditable="true"></div>
         <div class="tran editable" contenteditable="true"></div>
@@ -290,7 +293,10 @@
 
   <template id="line-item-template">
     <div class="line">
-      <div class="badge"></div>
+      <label class="sel-wrap">
+        <input type="checkbox" class="sel-cb">
+        <div class="badge"></div>
+      </label>
       <div class="editable" contenteditable="true"></div>
       <div class="toolbar">
         <button class="copy-btn" aria-label="복사">복사</button>

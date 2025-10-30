@@ -1,4 +1,3 @@
-// js/ui.js
 'use strict';
 
 import { DEFAULTS } from './config.js';
@@ -8,31 +7,31 @@ import { getExplanation, translateOnce, applyDeterministicGlossary } from './api
 // === 셀렉터 ===
 export const $ = (s) => document.querySelector(s);
 export const el = {
-  apiKey: $('#apiKey'), keyMsg: $('#keyMsg'), saveKey: $('#saveKey'), toggleKey: $('#toggleKey'), testKey: $('#testKey'),
-  src: $('#srcLang'), tgt: $('#tgtLang'), note: $('#noteInput'), send: $('#sendBtn'),
-  origList: $('#origList'), tranList: $('#tranList'), exportBtn: $('#exportBtn'), clearBtn: $('#clearBtn'), modelBadge: $('#modelBadge'),
-  gSrc: $('#gSrc'), gTgt: $('#gTgt'), gWhole: $('#gWhole'), gAdd: $('#gAdd'), gClear: $('#gClear'), gList: $('#gList'), gCount: $('#glossCount'),
-  installBtn: $('#installBtn'),
-  stModel: $('#stModel'), stExplainModel: $('#stExplainModel'), stTone: $('#stTone'), stVariety: $('#stVariety'), stPreserve: $('#stPreserve'),
-  stTemp: $('#stTemp'), stTopP: $('#stTopP'), stMaxTok: $('#stMaxTok'), stExplainMaxTok: $('#stExplainMaxTok'), stCustomPrompt: $('#stCustomPrompt'),
-  stTempVal: $('#stTempVal'), stTopPVal: $('#stTopPVal'),
-  btnSaveSettings: $('#btnSaveSettings'),
-  explainModal: $('#explainModal'), explainContent: $('#explainContent'), explainClose: $('#explainClose'),
-  layoutMode: $('#layoutMode'),
-  resSplit: $('#resSplit'),
-  resPair: $('#resPair'),
-  pairList: $('#pairList'),
-  copyMode: $('#copyMode'),
-  btnCopySel: $('#btnCopySel'),
-  btnDeleteSel: $('#btnDeleteSel'),
-  btnSaveNote: $('#btnSaveNote'),
-  btnLoadNote: $('#btnLoadNote'),
-  selToggle: $('#selToggle'),
+  apiKey: $("#apiKey"), keyMsg: $("#keyMsg"), saveKey: $("#saveKey"), toggleKey: $("#toggleKey"), testKey: $("#testKey"),
+  src: $("#srcLang"), tgt: $("#tgtLang"), note: $("#noteInput"), send: $("#sendBtn"),
+  origList: $("#origList"), tranList: $("#tranList"), exportBtn: $("#exportBtn"), clearBtn: $("#clearBtn"), modelBadge: $("#modelBadge"),
+  gSrc: $("#gSrc"), gTgt: $("#gTgt"), gWhole: $("#gWhole"), gAdd: $("#gAdd"), gClear: $("#gClear"), gList: $("#gList"), gCount: $("#glossCount"),
+  installBtn: $("#installBtn"),
+  stModel: $("#stModel"), stExplainModel: $("#stExplainModel"), stTone: $("#stTone"), stVariety: $("#stVariety"), stPreserve: $("#stPreserve"),
+  stTemp: $("#stTemp"), stTopP: $("#stTopP"), stMaxTok: $("#stMaxTok"), stExplainMaxTok: $("#stExplainMaxTok"), stCustomPrompt: $("#stCustomPrompt"),
+  stTempVal: $("#stTempVal"), stTopPVal: $("#stTopPVal"),
+  btnSaveSettings: $("#btnSaveSettings"),
+  explainModal: $("#explainModal"), explainContent: $("#explainContent"), explainClose: $("#explainClose"),
+  layoutMode: $("#layoutMode"),
+  resSplit: $("#resSplit"),
+  resPair: $("#resPair"),
+  pairList: $("#pairList"),
+  copyMode: $("#copyMode"),
+  btnCopySel: $("#btnCopySel"),
+  btnDeleteSel: $("#btnDeleteSel"),
+  btnSaveNote: $("#btnSaveNote"),
+  btnLoadNote: $("#btnLoadNote"),
+  selToggle: $("#selToggle"),
   // 탭 관련 요소들
   tabBtns: document.querySelectorAll('.tab-btn'),
   tabContents: document.querySelectorAll('.tab-content'),
-  pairItemTemplate: $('#pair-item-template'),
-  lineItemTemplate: $('#line-item-template'),
+  pairItemTemplate: $("#pair-item-template"),
+  lineItemTemplate: $("#line-item-template"),
 };
 
 // === UI 함수들 ===
@@ -68,10 +67,18 @@ function toggleSelection(idx) {
   
   if (isSelected) {
     selected.delete(idx);
-    elements.forEach(e => e.classList.remove('selected'));
+    elements.forEach(e => {
+      e.classList.remove('selected');
+      const cb = e.querySelector('.sel-cb');
+      if (cb) cb.checked = false;
+    });
   } else {
     selected.add(idx);
-    elements.forEach(e => e.classList.add('selected'));
+    elements.forEach(e => {
+      e.classList.add('selected');
+      const cb = e.querySelector('.sel-cb');
+      if (cb) cb.checked = true;
+    });
   }
 
   if (el.selToggle) {
@@ -86,10 +93,9 @@ function pairItemEl(l, idx){
   wrap.dataset.idx = idx;
   if (selected.has(idx)) wrap.classList.add('selected');
 
-  wrap.addEventListener('click', (e) => {
-      if (e.target.closest('.toolbar') || e.target.closest('.editable')) return;
-      toggleSelection(idx);
-  });
+  const checkbox = frag.querySelector('.sel-cb');
+  checkbox.checked = selected.has(idx);
+  checkbox.addEventListener('change', () => toggleSelection(idx));
 
   frag.querySelector('.idx').textContent = idx + 1;
   const o = frag.querySelector('.orig');
@@ -144,10 +150,9 @@ function lineEl(line, idx, isTran){
   div.dataset.idx = idx;
   if (selected.has(idx)) div.classList.add('selected');
 
-  div.addEventListener('click', (e) => {
-      if (e.target.closest('.toolbar') || e.target.closest('.editable')) return;
-      toggleSelection(idx);
-  });
+  const checkbox = frag.querySelector('.sel-cb');
+  checkbox.checked = selected.has(idx);
+  checkbox.addEventListener('change', () => toggleSelection(idx));
 
   frag.querySelector('.badge').textContent = idx + 1;
   const body = frag.querySelector('.editable');
@@ -243,7 +248,7 @@ export function renderGlossary() {
 }
 
 function escapeHTML(s) {
-  return String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
 export function loadSettingsToUI() {

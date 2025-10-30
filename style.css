@@ -1,5 +1,4 @@
-
-    :root { --bg:#0b0f14; --fg:#e6eef8; --muted:#9db0c6; --card:#121821; --accent:#69b1ff; --danger:#ff6b6b; --line:#1c2738; }
+:root { --bg:#0b0f14; --fg:#e6eef8; --muted:#9db0c6; --card:#121821; --accent:#69b1ff; --danger:#ff6b6b; --line:#1c2738; }
     html,body{height:100%}
     body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,Apple Color Emoji,Arial,sans-serif}
     header{position:sticky;top:0;background:linear-gradient(180deg,#0b0f14 70%,transparent);padding:12px 16px 10px;border-bottom:1px solid #182131;z-index:5}
@@ -69,7 +68,6 @@
       padding:6px 10px;
       align-items:start;
       border-top:1px solid #1b2536;
-      cursor:pointer;
     }
     .list .item:first-child{ border-top:none }
     .idx{
@@ -196,5 +194,41 @@
         gap: 8px;
         align-items: start;
         padding: 6px 8px;
+    }
+
+    /* Custom Checkbox for selection */
+    .sel-wrap {
+        display: flex;
+        align-items: center;
         cursor: pointer;
+        gap: 8px;
+        padding: 0 4px;
+    }
+    .sel-cb {
+        -webkit-appearance: none;
+        appearance: none;
+        background-color: transparent;
+        margin: 0;
+        font: inherit;
+        color: var(--muted);
+        width: 1.25em;
+        height: 1.25em;
+        border: 0.15em solid currentColor;
+        border-radius: 0.25em;
+        transform: translateY(-0.075em);
+        display: grid;
+        place-content: center;
+    }
+    .sel-cb::before {
+        content: "";
+        width: 0.75em;
+        height: 0.75em;
+        transform: scale(0);
+        transition: 120ms transform ease-in-out;
+        box-shadow: inset 1em 1em var(--accent);
+        transform-origin: bottom left;
+        clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    }
+    .sel-cb:checked::before {
+        transform: scale(1);
     }
