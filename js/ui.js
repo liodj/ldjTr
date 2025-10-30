@@ -1,3 +1,4 @@
+// js/ui.js
 'use strict';
 
 import { DEFAULTS } from './config.js';
@@ -118,19 +119,22 @@ function pairItemEl(l, idx){
       navigator.clipboard.writeText(txt || '');
   });
 
-  frag.querySelector('.explain-btn').addEventListener('click', () => handleApiAction(frag.querySelector('.explain-btn'), async () => {
+  const explainBtn = frag.querySelector('.explain-btn');
+  explainBtn.addEventListener('click', () => handleApiAction(explainBtn, async () => {
     const apiKey = (el.apiKey?.value || '').trim();
     const explanation = await getExplanation(apiKey, o.textContent, t.textContent, el.tgt?.value || 'ko', idx, false);
     showExplanation(explanation);
   }));
 
-  frag.querySelector('.explain-refresh-btn').addEventListener('click', () => handleApiAction(frag.querySelector('.explain-refresh-btn'), async () => {
+  const explainRefreshBtn = frag.querySelector('.explain-refresh-btn');
+  explainRefreshBtn.addEventListener('click', () => handleApiAction(explainRefreshBtn, async () => {
     const apiKey = (el.apiKey?.value || '').trim();
     const explanation = await getExplanation(apiKey, o.textContent, t.textContent, el.tgt?.value || 'ko', idx, true);
     showExplanation(explanation);
   }, '⏳'));
 
-  frag.querySelector('.rerun-btn').addEventListener('click', () => handleApiAction(frag.querySelector('.rerun-btn'), async () => {
+  const rerunBtn = frag.querySelector('.rerun-btn');
+  rerunBtn.addEventListener('click', () => handleApiAction(rerunBtn, async () => {
     const apiKey = (el.apiKey?.value || '').trim();
     const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?.value || 'auto'), (el.tgt?.value || 'ko'));
     const final = applyDeterministicGlossary(raw, LS.glossary);
@@ -248,7 +252,7 @@ export function renderGlossary() {
 }
 
 function escapeHTML(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'" :'&#39;' }[c]));
 }
 
 export function loadSettingsToUI() {
