@@ -1,3 +1,4 @@
+// js/ui.js
 'use strict';
 
 import { DEFAULTS } from './config.js';
@@ -334,19 +335,26 @@ export function showSuggestions(suggestions, lineIndex) {
   } else {
     const list = document.createElement('ul');
     list.className = 'suggestion-list';
-    suggestions.forEach(text => {
+    suggestions.forEach(suggestion => {
       const item = document.createElement('li');
+      
       const btn = document.createElement('button');
-      btn.textContent = text;
+      btn.textContent = suggestion.translation;
       btn.addEventListener('click', () => {
         const newLines = updateLines(lines => {
-          lines[lineIndex].tran = text;
+          lines[lineIndex].tran = suggestion.translation;
           return lines;
         }, { render: false });
         renderLines(newLines);
         el.explainModal.classList.remove('show');
       });
+
+      const reason = document.createElement('div');
+      reason.className = 'suggestion-reason';
+      reason.textContent = suggestion.reason;
+
       item.appendChild(btn);
+      item.appendChild(reason);
       list.appendChild(item);
     });
     el.explainContent.appendChild(list);

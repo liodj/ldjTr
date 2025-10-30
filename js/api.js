@@ -182,13 +182,21 @@ Original text: "${original}"
 Existing translation: "${translation}"
 
 Please provide 3 alternative translations from original text to ${targetLang}.
-Your output must be a valid JSON array of strings, like this: ["translation 1", "translation 2", "translation 3"]
+For each translation, provide a brief 1-2 sentence reason for the suggestion.
+
+Your output must be a valid JSON array of objects, like this:
+[
+  {"translation": "First alternative translation...", "reason": "This version is more formal and suitable for documents."},
+  {"translation": "Second alternative translation...", "reason": "A more casual expression, good for conversations."},
+  {"translation": "Third alternative translation...", "reason": "This one is a more literal translation."}
+]
+
 Do not include the existing translation in your suggestions. Return only the JSON array.`;
 
   const body = {
     systemInstruction: {
         role: 'system',
-        parts: [{ text: 'You are a translation suggestion engine. You must output a valid JSON array of strings. Do not wrap it in markdown.' }]
+        parts: [{ text: 'You are a translation suggestion engine. You must output a valid JSON array of objects, where each object has a "translation" and a "reason" key. Do not wrap the JSON in markdown.' }]
     },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: {
@@ -235,15 +243,14 @@ Do not include the existing translation in your suggestions. Return only the JSO
   
   try {
     // First, try to find a JSON array within the text
-    const jsonMatch = suggestionsText.match(/.*\[.*\]/s);
+    const jsonMatch = suggestionsText.match(/.*\[.*\].*/s);
     if (jsonMatch) {
         suggestionsText = jsonMatch[0];
     }
     return JSON.parse(suggestionsText);
   } catch (e) {
     console.error("Failed to parse suggestions JSON:", suggestionsText);
-    // Fallback: if parsing fails, return the raw text as a single suggestion, or an empty array if it's empty.
-    return suggestionsText ? [suggestionsText] : [];
+    return []; // Return an empty array on failure
   }
 }
 
