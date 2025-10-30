@@ -186,6 +186,77 @@ Your output must be a valid JSON array of strings, like this: ["translation 1", 
 Do not include the existing translation in your suggestions. Return only the JSON array.`;
 
   const body = {
+    systemInstruction: {
+        role: 'system',
+        parts: [{ text: 'You are a translation suggestion engine. You must output a valid JSON array of strings. Do not wrap it in markdown.' }]
+    },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: {
-      responseMimeType:
+      responseMimeType: "application/json",
+      temperature: 0.8,
+      topP: 1,
+      maxOutputTokens: Number(st.explainMaxTokens || DEFAULTS.explainMaxTokens)
+    }
+  };
+
+  const explainModel = st.explainModel || DEFAULTS.explainModel;
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + 
+              encodeURIComponent(explainModel) + 
+              ':generateContent';
+
+  const ac = new AbortController();
+  const id = setTimeout(() => ac.abort(), 15000);
+  let data;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(body),
+      signal: ac.signal
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      console.error('getSuggestions HTTP error', res.status, txt);
+      throw new Error('제안 요청 실패 (' + res.status + ')');
+    }
+    data = await res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('요청 시간이 초과되었습니다.');
+    throw err;
+  } finally {
+    clearTimeout(id);
+  }
+
+  if (data?.promptFeedback?.blockReason) {
+    throw new Error('안전 필터에 의해 차단됨: ' + data.promptFeedback.blockReason);
+  }
+  
+  let suggestionsText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+  
+  try {
+    // First, try to find a JSON array within the text
+    const jsonMatch = suggestionsText.match(/.*\[.*\]/s);
+    if (jsonMatch) {
+        suggestionsText = jsonMatch[0];
+    }
+    return JSON.parse(suggestionsText);
+  } catch (e) {
+    console.error("Failed to parse suggestions JSON:", suggestionsText);
+    // Fallback: if parsing fails, return the raw text as a single suggestion, or an empty array if it's empty.
+    return suggestionsText ? [suggestionsText] : [];
+  }
+}
+
+export function applyDeterministicGlossary(out, glossary) {
+  if (!glossary || !glossary.length) return out;
+  const esc = (s) => String(s).replace(/[.*+?^${}()|[\\]]/g, '\\$&');
+  let t = String(out);
+  glossary.forEach((item) => {
+    const escSrc = esc(item.src);
+    const re = item.whole
+      ? new RegExp('(^|\\b)' + escSrc + '(?=\\b|$)', 'g')
+      : new RegExp(escSrc, 'g');
+    t = t.replace(re, (m, p1) => (item.whole && p1 ? p1 : '') + String(item.tgt));
+  });
+  return t;
+}
