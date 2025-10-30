@@ -249,7 +249,7 @@ Do not include the existing translation in your suggestions. Return only the JSO
 
 export function applyDeterministicGlossary(out, glossary) {
   if (!glossary || !glossary.length) return out;
-  const esc = (s) => String(s).replace(/[.*+?^${}()|[\\]]/g, '\\$&');
+  const esc = (s) => String(s).replace(/[.*+?^${}()|[\\]/g, '\\$&');
   let t = String(out);
   glossary.forEach((item) => {
     const escSrc = esc(item.src);
