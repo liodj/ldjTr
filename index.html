@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -258,10 +259,10 @@
     <p class="hint" style="margin-top:8px">주의: 브라우저에서 직접 API 호출은 프로토타입/개인용에 적합합니다. 운영 전환 시 서버 프록시(Fetch proxy)나 Firebase/Cloudflare Functions로 키 비공개 권장.</p>
   </main>
 
-  <!-- 해설 모달 -->
+  <!-- 제안 모달 -->
   <div class="overlay" id="explainModal">
     <div class="modal" style="width:min(900px,95vw)">
-      <h2>번역 해설</h2>
+      <h2>번역 제안</h2>
       <div style="margin-top:12px;padding:16px;background:#0f1621;border-radius:8px;min-height:100px;max-height:500px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-word" id="explainContent"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
         <button id="explainClose" class="primary">닫기</button>
@@ -283,8 +284,7 @@
         <div class="tran editable" contenteditable="true"></div>
         <div class="toolbar">
           <button class="copy-btn" aria-label="복사">복사</button>
-          <button class="explain-btn" aria-label="해설">해설</button>
-          <button class="explain-refresh-btn" title="해설 새로고침" aria-label="해설 새로고침" style="font-size: 14px;">🔄</button>
+          <button class="suggest-btn" aria-label="제안">제안</button>
           <button class="rerun-btn" aria-label="재번역">재번역</button>
         </div>
       </div>
@@ -300,7 +300,7 @@
       <div class="editable" contenteditable="true"></div>
       <div class="toolbar">
         <button class="copy-btn" aria-label="복사">복사</button>
-        <!-- Explain and Rerun buttons will be added dynamically -->
+        <!-- Suggest and Rerun buttons will be added dynamically -->
       </div>
     </div>
   </template>

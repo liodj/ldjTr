@@ -1,9 +1,8 @@
-// js/ui.js
 'use strict';
 
 import { DEFAULTS } from './config.js';
 import { LS, selected, updateLines } from './store.js';
-import { getExplanation, translateOnce, applyDeterministicGlossary } from './api.js';
+import { getSuggestions, translateOnce, applyDeterministicGlossary } from './api.js';
 
 // === 셀렉터 ===
 export const $ = (s) => document.querySelector(s);
@@ -119,19 +118,12 @@ function pairItemEl(l, idx){
       navigator.clipboard.writeText(txt || '');
   });
 
-  const explainBtn = frag.querySelector('.explain-btn');
-  explainBtn.addEventListener('click', () => handleApiAction(explainBtn, async () => {
+  const suggestBtn = frag.querySelector('.suggest-btn');
+  suggestBtn.addEventListener('click', () => handleApiAction(suggestBtn, async () => {
     const apiKey = (el.apiKey?.value || '').trim();
-    const explanation = await getExplanation(apiKey, o.textContent, t.textContent, el.tgt?.value || 'ko', idx, false);
-    showExplanation(explanation);
+    const suggestions = await getSuggestions(apiKey, o.textContent, t.textContent, el.tgt?.value || 'ko');
+    showSuggestions(suggestions, idx);
   }));
-
-  const explainRefreshBtn = frag.querySelector('.explain-refresh-btn');
-  explainRefreshBtn.addEventListener('click', () => handleApiAction(explainRefreshBtn, async () => {
-    const apiKey = (el.apiKey?.value || '').trim();
-    const explanation = await getExplanation(apiKey, o.textContent, t.textContent, el.tgt?.value || 'ko', idx, true);
-    showExplanation(explanation);
-  }, '⏳'));
 
   const rerunBtn = frag.querySelector('.rerun-btn');
   rerunBtn.addEventListener('click', () => handleApiAction(rerunBtn, async () => {
@@ -176,32 +168,17 @@ function lineEl(line, idx, isTran){
   const toolbar = frag.querySelector('.toolbar');
 
   if (isTran) {
-    const explain = document.createElement('button');
-    explain.textContent = '해설';
-    explain.setAttribute('aria-label', '해설');
-    explain.addEventListener('click', () => handleApiAction(explain, async () => {
+    const suggestBtn = document.createElement('button');
+    suggestBtn.textContent = '제안';
+    suggestBtn.setAttribute('aria-label', '제안');
+    suggestBtn.addEventListener('click', () => handleApiAction(suggestBtn, async () => {
       const apiKey = (el.apiKey?.value || '').trim();
       const orig = LS.lines[idx].orig || '';
       const tran = body.textContent || '';
-      const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, false);
-      showExplanation(explanation);
+      const suggestions = await getSuggestions(apiKey, orig, tran, el.tgt?.value || 'ko');
+      showSuggestions(suggestions, idx);
     }));
-
-    const explainRefresh = document.createElement('button');
-    explainRefresh.textContent = '🔄';
-    explainRefresh.title = '해설 새로고침';
-    explainRefresh.setAttribute('aria-label', '해설 새로고침');
-    explainRefresh.style.fontSize = '14px';
-    explainRefresh.addEventListener('click', () => handleApiAction(explainRefresh, async () => {
-      const apiKey = (el.apiKey?.value || '').trim();
-      const orig = LS.lines[idx].orig || '';
-      const tran = body.textContent || '';
-      const explanation = await getExplanation(apiKey, orig, tran, el.tgt?.value || 'ko', idx, true);
-      showExplanation(explanation);
-    }, '⏳'));
-
-    toolbar.appendChild(explain);
-    toolbar.appendChild(explainRefresh);
+    toolbar.appendChild(suggestBtn);
   } else {
     const rerun = document.createElement('button');
     rerun.textContent = '재번역';
@@ -348,9 +325,33 @@ export function copySelected(){
   navigator.clipboard.writeText(text);
 }
 
-export function showExplanation(text) {
+export function showSuggestions(suggestions, lineIndex) {
   if (!el.explainContent) return;
-  el.explainContent.textContent = text;
+  el.explainContent.innerHTML = ''; // Clear previous content
+
+  if (!suggestions || suggestions.length === 0) {
+    el.explainContent.textContent = '제안된 번역이 없습니다.';
+  } else {
+    const list = document.createElement('ul');
+    list.className = 'suggestion-list';
+    suggestions.forEach(text => {
+      const item = document.createElement('li');
+      const btn = document.createElement('button');
+      btn.textContent = text;
+      btn.addEventListener('click', () => {
+        const newLines = updateLines(lines => {
+          lines[lineIndex].tran = text;
+          return lines;
+        }, { render: false });
+        renderLines(newLines);
+        el.explainModal.classList.remove('show');
+      });
+      item.appendChild(btn);
+      list.appendChild(item);
+    });
+    el.explainContent.appendChild(list);
+  }
+
   if (el.explainModal) el.explainModal.classList.add('show');
 }
 

@@ -174,16 +174,18 @@ Use line breaks between sections to improve readability. Answer can be somewhat 
   return out;
 }
 
-export function applyDeterministicGlossary(out, glossary) {
-  if (!glossary || !glossary.length) return out;
-  const esc = (s) => String(s).replace(/[.*+?^${}()|[\\]/g, '\\$&');
-  let t = String(out);
-  glossary.forEach((item) => {
-    const escSrc = esc(item.src);
-    const re = item.whole
-      ? new RegExp('(^|\\b)' + escSrc + '(?=\\b|$)', 'g')
-      : new RegExp(escSrc, 'g');
-    t = t.replace(re, (m, p1) => (item.whole && p1 ? p1 : '') + String(item.tgt));
-  });
-  return t;
-}
+export async function getSuggestions(apiKey, original, translation, targetLang) {
+  const st = LS.settings;
+  
+  const prompt = `You are an expert translator.
+Original text: "${original}"
+Existing translation: "${translation}"
+
+Please provide 3 alternative translations from original text to ${targetLang}.
+Your output must be a valid JSON array of strings, like this: ["translation 1", "translation 2", "translation 3"]
+Do not include the existing translation in your suggestions. Return only the JSON array.`;
+
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType:
