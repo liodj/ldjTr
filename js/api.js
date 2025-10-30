@@ -182,13 +182,13 @@ Original text: "${original}"
 Existing translation: "${translation}"
 
 Please provide 3 alternative translations from original text to ${targetLang}.
-For each translation, provide a brief 1-2 sentence reason for the suggestion.
+For each translation, provide a brief 1-2 sentence reason for the suggestion. The "reason" field MUST be written in Korean.
 
 Your output must be a valid JSON array of objects, like this:
 [
-  {"translation": "First alternative translation...", "reason": "This version is more formal and suitable for documents."},
-  {"translation": "Second alternative translation...", "reason": "A more casual expression, good for conversations."},
-  {"translation": "Third alternative translation...", "reason": "This one is a more literal translation."}
+  {"translation": "First alternative translation...", "reason": "이 버전은 더 격식 있는 표현으로, 문서에 적합합니다."},
+  {"translation": "Second alternative translation...", "reason": "더 캐주얼한 표현으로, 대화에 사용하기 좋습니다."},
+  {"translation": "Third alternative translation...", "reason": "이것은 더 직역에 가까운 번역입니다."}
 ]
 
 Do not include the existing translation in your suggestions. Return only the JSON array.`;
@@ -196,7 +196,7 @@ Do not include the existing translation in your suggestions. Return only the JSO
   const body = {
     systemInstruction: {
         role: 'system',
-        parts: [{ text: 'You are a translation suggestion engine. You must output a valid JSON array of objects, where each object has a "translation" and a "reason" key. Do not wrap the JSON in markdown.' }]
+        parts: [{ text: 'You are a translation suggestion engine. You must output a valid JSON array of objects, where each object has a "translation" and a "reason" key. The "reason" must be in Korean. Do not wrap the JSON in markdown.' }]
     },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: {
@@ -256,12 +256,12 @@ Do not include the existing translation in your suggestions. Return only the JSO
 
 export function applyDeterministicGlossary(out, glossary) {
   if (!glossary || !glossary.length) return out;
-  const esc = (s) => String(s).replace(/[.*+?^${}()|[\\]/g, '\\$&');
+  const esc = (s) => String(s).replace(/[.*+?^${}()|[\]]/g, '\$&');
   let t = String(out);
   glossary.forEach((item) => {
     const escSrc = esc(item.src);
     const re = item.whole
-      ? new RegExp('(^|\\b)' + escSrc + '(?=\\b|$)', 'g')
+      ? new RegExp('(^|\b)' + escSrc + '(?=\b|$)', 'g')
       : new RegExp(escSrc, 'g');
     t = t.replace(re, (m, p1) => (item.whole && p1 ? p1 : '') + String(item.tgt));
   });
