@@ -1,4 +1,3 @@
-// js/ui.js
 'use strict';
 
 import { DEFAULTS } from './config.js';
@@ -166,12 +165,12 @@ function lineEl(line, idx, isTran){
 
   frag.querySelector('.copy-btn').addEventListener('click', () => navigator.clipboard.writeText(body.textContent || ''));
 
-  const toolbar = frag.querySelector('.toolbar');
+  const suggestBtn = frag.querySelector('.suggest-btn');
+  const rerunBtn = frag.querySelector('.rerun-btn');
 
   if (isTran) {
-    const suggestBtn = document.createElement('button');
-    suggestBtn.textContent = '제안';
-    suggestBtn.setAttribute('aria-label', '제안');
+    suggestBtn.style.display = 'inline-block';
+    rerunBtn.style.display = 'none';
     suggestBtn.addEventListener('click', () => handleApiAction(suggestBtn, async () => {
       const apiKey = (el.apiKey?.value || '').trim();
       const orig = LS.lines[idx].orig || '';
@@ -179,12 +178,10 @@ function lineEl(line, idx, isTran){
       const suggestions = await getSuggestions(apiKey, orig, tran, el.tgt?.value || 'ko');
       showSuggestions(suggestions, idx);
     }));
-    toolbar.appendChild(suggestBtn);
   } else {
-    const rerun = document.createElement('button');
-    rerun.textContent = '재번역';
-    rerun.setAttribute('aria-label', '재번역');
-    rerun.addEventListener('click', () => handleApiAction(rerun, async () => {
+    suggestBtn.style.display = 'none';
+    rerunBtn.style.display = 'inline-block';
+    rerunBtn.addEventListener('click', () => handleApiAction(rerunBtn, async () => {
       const apiKey = (el.apiKey?.value || '').trim();
       const raw = await translateOnce(apiKey, (LS.lines[idx].orig || ''), (el.src?.value || 'auto'), (el.tgt?.value || 'ko'));
       const final = applyDeterministicGlossary(raw, LS.glossary);
@@ -194,7 +191,6 @@ function lineEl(line, idx, isTran){
       }, { render: false });
       renderLines(newLines);
     }, '번역중…'));
-    toolbar.appendChild(rerun);
   }
 
   return frag;
